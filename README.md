@@ -16,20 +16,14 @@
 <!--- under the License. -->
 
 
-<!--
-  <table>
-    <tr>
-      <td><img src=https://raw.githubusercontent.com/hamzaqureshi5/gsm-data-generator-gui/ds0/src/resources/icon_without_text.png width="128"/></td>
-      <td style="vertical-align: middle; padding-left: 12px;">
-        <h1>GSM Data Generation Stack</h1>
-      </td>
-    </tr>
-  </table>
-</p>
-!-->
-
-<img src=https://raw.githubusercontent.com/hamzaqureshi5/gsm-data-generator-gui/ds0/src/resources/icon_without_text.png width=128/> Open GSM Data Generation Stack
-==============================================
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/hamzaqureshi5/gsm-data-generator-gui/ds0/src/resources/icon_without_text.png" width="128"/></td>
+    <td style="vertical-align: middle; padding-left: 16px;">
+      <h1>Open GSM Data Generation Stack</h1>
+    </td>
+  </tr>
+</table>
 [Documentation]() |
 [Contributors](CONTRIBUTORS.md) |
 [Community]() |
