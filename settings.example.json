@@ -1,0 +1,75 @@
+{
+  "DISP": {
+
+    "elect_data_sep":  ",",
+    "server_data_sep": ",",
+    "graph_data_sep":  ",",
+
+    "K4":   "0000555500006666000077770000111100005555000066660000777700001111",
+    "op":   "00001111000022220000333300004444",
+
+    "imsi":  "410010000000001",
+    "iccid": "8944000000000000001",
+
+    "pin1": "1234",
+    "puk1": "12345678",
+    "pin2": "5678",
+    "puk2": "87654321",
+    "adm1": "AABBCCDD",
+    "adm6": "11223344",
+
+    "size": 10,
+
+    "prod_check":   true,
+    "elect_check":  true,
+    "graph_check":  true,
+    "server_check": false,
+
+    "pin1_fix": true,
+    "puk1_fix": true,
+    "pin2_fix": true,
+    "puk2_fix": true,
+    "adm1_fix": false,
+    "adm6_fix": false
+  },
+
+  "PATHS": {
+    "FILE_NAME":               "my_batch_001",
+    "OUTPUT_FILES_DIR":        "output",
+    "OUTPUT_FILES_LASER_EXT":  "laser"
+  },
+
+  "PARAMETERS": {
+    "data_variables": [
+      "IMSI", "ICCID",
+      "PIN1", "PUK1", "PIN2", "PUK2",
+      "ADM1", "ADM6",
+      "KI", "OPC", "ACC",
+      "KIC1", "KID1", "KIK1",
+      "KIC2", "KID2", "KIK2",
+      "KIC3", "KID3", "KIK3"
+    ],
+
+    "server_variables": [
+      "IMSI", "EKI", "ICCID",
+      "PIN1", "PUK1", "PIN2", "PUK2",
+      "ADM1", "ADM6", "ACC",
+      "KIC1", "KID1", "KIK1",
+      "KIC2", "KID2", "KIK2",
+      "KIC3", "KID3", "KIK3"
+    ],
+
+    "laser_variables": {
+      "0": ["ICCID", "Normal", "0-18"],
+      "1": ["ICCID", "Normal", "0-3"],
+      "2": ["ICCID", "Normal", "4-7"],
+      "3": ["ICCID", "Normal", "8-11"],
+      "4": ["ICCID", "Normal", "12-15"],
+      "5": ["ICCID", "Normal", "16-18"],
+      "6": ["PIN1",  "Normal", "0-3"],
+      "7": ["PUK1",  "Normal", "0-7"],
+      "8": ["IMSI",  "Normal", "0-5"],
+      "9": ["IMSI",  "Normal", "6-14"]
+    }
+  }
+}

@@ -93,19 +93,6 @@ def gui_loader(path) -> ConfigHolder:
     return config_holder
 
 
-# # if __name__ == "__main__":
-# config_holder = json_loader(
-#     "D:\STC_APP\improvements\security-layer\datageneration\core\settings.json"
-# )
-
-# # Load config data
-# with open(
-#     "D:\STC_APP\improvements\security-layer\datageneration\core\settings.json", "r"
-# ) as f:
-#     data = json.load(f)
-# config = ConfigData(**data)
-# config_holder = ConfigHolder.from_config(config)
-
 __all__ = [
     "DISP",
     "PATHS",
