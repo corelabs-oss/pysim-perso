@@ -138,7 +138,7 @@ class BinaryDistribution(Distribution):
 
 def long_description_contents():
     with open(
-        pathlib.Path(CURRENT_DIR).resolve().parent / "README.md", encoding="utf-8"
+        pathlib.Path(CURRENT_DIR).resolve() / "README.md", encoding="utf-8"
     ) as readme:
         description = readme.read()
 
@@ -162,21 +162,26 @@ extras_require = {
 setup(
     name="gsm-data-generator",
     # version=__version__,
-    description="DATAGEN: An End to End Tensor IR/DSL Stack for Deep Learning Systems",
-    long_description="long_description_contents()",
+    description="GSM Data Generator: A library for generating and processing GSM/USIM/eSIM SIM card datasets",
+    long_description=long_description_contents(),
     long_description_content_type="text/markdown",
-    url="https://tvm.apache.org/",
+    url="https://github.com/open-etsi/gsm-data-generator",
     download_url="https://github.com/open-etsi/gsm-data-generator",
-    author="DATAGEN",
-    license="Apache",
-    # See https://pypi.org/classifiers/
+    author="GSM Data Generator Contributors",
+    license="Apache-2.0",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "Intended Audience :: Education",
-        "Intended Audience :: Science/Research",
+        "Intended Audience :: Telecommunications Industry",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Communications :: Telephony",
     ],
-    keywords="machine learning",
+    keywords="gsm usim esim sim card data generation telecom 3gpp",
     zip_safe=True,
     install_requires=requirements["core"][1],
     extras_require=extras_require,

@@ -14,55 +14,78 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=redefined-builtin, wildcard-import
-"""DATAGEN"""
+"""GSM Data Generator — public API."""
 import multiprocessing
-import sys
 import os
+import sys
 
-# top-level alias
-from gsm_data_generator.base import DATAGENError, __version__  # , #_RUNTIME_ONLY
-import gsm_data_generator.testing
-
-# gsm_data_generator.error
+from gsm_data_generator.base import __version__, DATAGENError
 from gsm_data_generator import error
 
+# ------------------------------------------------------------------ #
+# Public API re-exports
+# ------------------------------------------------------------------ #
+from gsm_data_generator.generator.generate import DataGenerator
+from gsm_data_generator.algorithm.encrypt import CryptoUtils, DependentDataGenerator
+from gsm_data_generator.algorithm.encode import EncodingUtils
+from gsm_data_generator.processor.process import DataProcessing, DataFrameProcessor
+from gsm_data_generator.transform.transform import DataTransform
+from gsm_data_generator.globals.parameters import Parameters, DataFrames
+from gsm_data_generator.executor.script import DataGenerationScript
+from gsm_data_generator.parser.utils import (
+    json_loader,
+    json_loader_2_ConfigHolder,
+    ConfigHolder,
+)
 
-def _should_print_backtrace():
+import gsm_data_generator.testing
+
+
+def _should_print_backtrace() -> bool:
     in_pytest = "PYTEST_CURRENT_TEST" in os.environ
-    gsm_datagen_backtrace = os.environ.get("DATAGEN_BACKTRACE", "0")
-
+    raw = os.environ.get("DATAGEN_BACKTRACE", "0")
     try:
-        gsm_datagen_backtrace = bool(int(gsm_datagen_backtrace))
+        return in_pytest or bool(int(raw))
     except ValueError:
         raise ValueError(
-            "invalid value for DATAGEN_BACKTRACE {}, please set to 0 or 1.".format(
-                gsm_datagen_backtrace
-            )
+            f"Invalid value for DATAGEN_BACKTRACE '{raw}' — set to 0 or 1."
         )
 
-    return in_pytest or gsm_datagen_backtrace
 
-
-def gsm_datagen_wrap_excepthook(exception_hook):
-    """Wrap given excepthook with DATAGEN additional work."""
-
+def _wrap_excepthook(exception_hook):
     def wrapper(exctype, value, trbk):
-        """Clean subprocesses when DATAGEN is interrupted."""
         if exctype is error.DiagnosticError and not _should_print_backtrace():
-            # TODO(@jroesch): consider moving to C++?
-            print(
-                "note: run with `DATAGEN_BACKTRACE=1` environment variable to display a backtrace."
-            )
+            print("note: run with `DATAGEN_BACKTRACE=1` to display a backtrace.")
         else:
             exception_hook(exctype, value, trbk)
-
-        if hasattr(multiprocessing, "active_children"):
-            # pylint: disable=not-callable
-            for p in multiprocessing.active_children():
-                p.terminate()
+        for p in multiprocessing.active_children():
+            p.terminate()
 
     return wrapper
 
 
-sys.excepthook = gsm_datagen_wrap_excepthook(sys.excepthook)
+sys.excepthook = _wrap_excepthook(sys.excepthook)
+
+__all__ = [
+    "__version__",
+    "DATAGENError",
+    # Generators
+    "DataGenerator",
+    # Crypto / encoding
+    "CryptoUtils",
+    "DependentDataGenerator",
+    "EncodingUtils",
+    # Processing / transformation
+    "DataProcessing",
+    "DataFrameProcessor",
+    "DataTransform",
+    # Global state
+    "Parameters",
+    "DataFrames",
+    # High-level pipeline
+    "DataGenerationScript",
+    # Config loading
+    "json_loader",
+    "json_loader_2_ConfigHolder",
+    "ConfigHolder",
+]

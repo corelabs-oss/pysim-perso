@@ -14,65 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# coding: utf-8
-# pylint: disable=invalid-name, import-outside-toplevel
 """Base library for DATAGEN."""
 import sys
 
-from . import libinfo
-
-# ----------------------------
-# Python3 version.
-# ----------------------------
-if not (sys.version_info[0] >= 3 and sys.version_info[1] >= 9):
-    PY3STATEMENT = "The minimal Python requirement is Python 3.9"
-    raise Exception(PY3STATEMENT)
-
-# ----------------------------
-# library loading
-# ----------------------------
-
-
-# def _load_lib():
-#     """Load libary by searching possible path."""
-#     lib_path = libinfo.find_lib_path()
-#     # The dll search path need to be added explicitly in windows
-#     if sys.platform.startswith("win32"):
-#         for path in libinfo.get_dll_directories():
-#             os.add_dll_directory(path)
-#     lib = ctypes.CDLL(lib_path[0], ctypes.RTLD_GLOBAL)
-#     return lib, os.path.basename(lib_path[0])
-
-
 try:
-    # The following import is needed for DATAGEN to work with pdb
-    import readline  # pylint: disable=unused-import
+    import readline  # noqa: F401 — improves interactive REPL experience
 except ImportError:
     pass
 
-# version number
-__version__ = libinfo.__version__
-# library instance
-# _LIB, _LIB_NAME = _load_lib()
+from .libinfo import __version__
+from .error import DATAGENError
 
-# Whether we are runtime only
-# _RUNTIME_ONLY = "runtime" in _LIB_NAME
+if sys.version_info < (3, 9):
+    raise RuntimeError("gsm-data-generator requires Python 3.9 or newer")
 
-
-# if _RUNTIME_ONLY:
-#     from .ffi import registry as _DATAGEN_ffi_registry
-
-#     _DATAGEN_ffi_registry._SKIP_UNKNOWN_OBJECTS = True
-
-# The FFI mode of DATAGEN
-# _FFI_MODE = os.environ.get("DATAGEN_FFI", "auto")
-
-# if _FFI_MODE == "ctypes":
-#     raise ImportError("We have phased out ctypes support in favor of cython on wards")
-
-
-def py_str(x):
-    return x.decode("utf-8")
-
-
-DATAGENError = Exception
+__all__ = ["__version__", "DATAGENError"]
