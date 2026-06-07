@@ -20,7 +20,9 @@ def test_enc_dec_pin_roundtrip():
 # -------------------------
 def test_enc_dec_imsi_roundtrip():
     imsi = "123456789012345"
-    encoded = EncodingUtils.enc_imsi(imsi)
+    encoded = EncodingUtils.enc_imsi(
+        imsi,
+    )
     decoded = EncodingUtils.dec_imsi(encoded)
     assert decoded == imsi
 

@@ -1,469 +1,476 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import pandas as pd
-from typing import List, Dict, Optional
-from pydantic import BaseModel, field_validator, constr, Field
 from threading import Lock
-
-debug = False
 
 
 class DataFrames:
+    """Singleton holding the shared input and output DataFrames."""
+
     __instance = None
 
     def __init__(self):
         if DataFrames.__instance is not None:
-            raise Exception(
-                "GlobalParameters class is a singleton! Use get_instance() to access the instance."
-            )
-        else:
-            DataFrames.__instance = self
-            self.__INPUT_DF = pd.DataFrame()
-            self.ELECT_DF = pd.DataFrame()
-            self.GRAPH_DF = pd.DataFrame()
-            self.SERVER_DF = pd.DataFrame()
-            self.__KEYS = {}
+            raise RuntimeError("DataFrames is a singleton — use get_instance().")
+        DataFrames.__instance = self
+        self.__INPUT_DF = pd.DataFrame()
+        self.ELECT_DF = pd.DataFrame()
+        self.GRAPH_DF = pd.DataFrame()
+        self.SERVER_DF = pd.DataFrame()
+        self.__KEYS: dict = {}
 
     @staticmethod
-    def get_instance():
+    def get_instance() -> "DataFrames":
         if DataFrames.__instance is None:
             DataFrames.__instance = DataFrames()
         return DataFrames.__instance
 
-    def set_ELECT_DF(self, value):
-        self.ELECT_DF = pd.DataFrame()
-        self.ELECT_DF = value
-
-    def get_ELECT_DF(self):
-        return self.ELECT_DF
-
-    def set_GRAPH_DF(self, value):
-        self.GRAPH_DF = pd.DataFrame()
-        self.GRAPH_DF = value
-
-    def get_GRAPH_DF(self):
-        return self.GRAPH_DF
-
-    def set_SERVER_DF(self, value):
-        self.SERVER_DF = pd.DataFrame()
-        self.SERVER_DF = value
-
-    def get_SERVER_DF(self):
-        return self.SERVER_DF
-
-    def set_KEYS(self, value):
-        self.__KEYS = value
-
-    def get_KEYS(self):
-        return self.__KEYS
-
-    def set_input_df(self, value):
-        self.__INPUT_DF = pd.DataFrame()
+    def set_input_df(self, value: pd.DataFrame) -> None:
         self.__INPUT_DF = value
 
-    def get_input_df(self):
+    def get_input_df(self) -> pd.DataFrame:
         return self.__INPUT_DF
 
-    # def is_VALID_DF(self, param, param_name: str) -> bool:
-    #     if param_name == "DF":
-    #         return param.empty
-    #     else:
-    #         return False
+    def set_KEYS(self, value: dict) -> None:
+        self.__KEYS = value
+
+    def get_KEYS(self) -> dict:
+        return self.__KEYS
 
 
 class Parameters(DataFrames):
-    __instance = None
+    """Thread-safe singleton holding all in-flight SIM card configuration parameters."""
 
-    def __init__(self):
-        super().__init__()
-        self.__def_head = None
-        if Parameters.__instance is not None:
-            raise Exception(
-                "GlobalParameters class is a singleton! Use get_instance() to access the instance."
-            )
-        else:
-            Parameters.__instance = self
-
-            self.__ICCID: constr(strip_whitespace=True, min_length=18, max_length=20) = ""  # type: ignore
-            self.__IMSI: constr(strip_whitespace=True, min_length=15, max_length=15) = ""  # type: ignore
-            self.__PIN1: constr(regex=r"^\d{4}$") = ""  # type: ignore
-            self.__PUK1: constr(regex=r"^\d{8}$") = ""  # type: ignore
-            self.__PIN2: constr(regex=r"^\d{4}$") = ""  # type: ignore
-            self.__PUK2: constr(regex=r"^\d{8}$") = ""  # type: ignore
-            self.__K4: str = ""
-            self.__OP: str = ""
-            self.__ADM1: str = ""
-            self.__ADM6: str = ""
-            self.__ACC: str = ""
-            self.__DATA_SIZE: str = ""
-
-            self.__ELECT_CHECK: bool = False
-            self.__GRAPH_CHECK: bool = False
-            self.__SERVER_CHECK: bool = False
-            self.__PROD_CHECK: bool = False
-
-            self.__pin1_rand: bool = True
-            self.__puk1_rand: bool = True
-            self.__pin2_rand: bool = True
-            self.__puk2_rand: bool = True
-            self.__adm1_rand: bool = True
-            self.__adm6_rand: bool = True
-            self.__acc_rand: bool = True
-
-            self.__ELECT_DICT: dict = {}
-            self.__GRAPH_DICT: dict = {}
-            self.__SERVER_DICT: dict = {}
-
-            self.file_name: str
-            # ===========================-=================#
-            # ================= SEPERATOR==================#
-            # =============================================#
-
-            self.__ELECT_SEP: str = ""
-            self.__GRAPH_SEP: str = ""
-            self.__SERVR_SEP: str = ""
-
-    # Example validator
-    @field_validator("DATA_SIZE")
-    def check_data_size(cls, v):
-        if v is not None and v <= 0:
-            raise ValueError("DATA_SIZE must be a positive integer")
-        return v
-
-    # Singleton implementation
     __instance = None
     __lock = Lock()
 
+    def __init__(self):
+        super().__init__()
+        if Parameters.__instance is not None:
+            raise RuntimeError("Parameters is a singleton — use get_instance().")
+        Parameters.__instance = self
+
+        # SIM card parameters
+        self.__ICCID: str = ""
+        self.__IMSI: str = ""
+        self.__PIN1: str = ""
+        self.__PUK1: str = ""
+        self.__PIN2: str = ""
+        self.__PUK2: str = ""
+        self.__K4: str = ""
+        self.__OP: str = ""
+        self.__ADM1: str = ""
+        self.__ADM6: str = ""
+        self.__ACC: str = ""
+        self.__DATA_SIZE: str = ""
+
+        # File paths
+        self.__TEMPLATE_JSON: str = ""
+        self.__INPUT_FILE_PATH: str = ""
+        self.__OUTPUT_FILES_DIR: str = ""
+        self.file_name: str = ""
+
+        # Output type enable flags
+        self.__ELECT_CHECK: bool = False
+        self.__GRAPH_CHECK: bool = False
+        self.__SERVER_CHECK: bool = False
+
+        # Randomisation flags — True means use fixed value, False means generate randomly
+        self.__pin1_rand: bool = True
+        self.__puk1_rand: bool = True
+        self.__pin2_rand: bool = True
+        self.__puk2_rand: bool = True
+        self.__adm1_rand: bool = True
+        self.__adm6_rand: bool = True
+        self.__acc_rand: bool = True
+
+        # Output variable dictionaries
+        self.__ELECT_DICT: dict = {}
+        self.__GRAPH_DICT: dict = {}
+        self.__SERVER_DICT: dict = {}
+
+        # Column separators used when writing output files
+        self.__ELECT_SEP: str = ""
+        self.__GRAPH_SEP: str = ""
+        self.__SERVR_SEP: str = ""
+
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> "Parameters":
         with cls.__lock:
             if cls.__instance is None:
                 cls.__instance = Parameters()
             return cls.__instance
 
-    # @staticmethod
-    # def get_instance():
-    #     if Parameters.__instance is None:
-    #         Parameters.__instance = Parameters()
-    #     return Parameters.__instance
+    # ------------------------------------------------------------------ #
+    # Separators
+    # ------------------------------------------------------------------ #
 
-    def set_ELECT_SEP(self, value: str) -> None:
-        self.__ELECT_SEP = str(value)
-
-    def get_ELECT_SEP(self) -> str:
+    @property
+    def ELECT_SEP(self) -> str:
         return self.__ELECT_SEP
 
-    def set_GRAPH_SEP(self, value: str) -> None:
-        self.__GRAPH_SEP = str(value)
+    @ELECT_SEP.setter
+    def ELECT_SEP(self, value: str) -> None:
+        self.__ELECT_SEP = value
 
-    def get_GRAPH_SEP(self) -> str:
+    @property
+    def GRAPH_SEP(self) -> str:
         return self.__GRAPH_SEP
 
-    def set_SERVER_SEP(self, value: str) -> None:
-        self.__SERVR_SEP = str(value)
+    @GRAPH_SEP.setter
+    def GRAPH_SEP(self, value: str) -> None:
+        self.__GRAPH_SEP = value
 
-    def get_SERVER_SEP(self) -> str:
+    @property
+    def SERVER_SEP(self) -> str:
         return self.__SERVR_SEP
 
-    def set_TEMPLATE_JSON(self, value):
-        self.__TEMPLATE_JSON = str(value)
+    @SERVER_SEP.setter
+    def SERVER_SEP(self, value: str) -> None:
+        self.__SERVR_SEP = value
 
-    def get_TEMPLATE_JSON(self) -> str:
+    @property
+    def SERVR_SEP(self) -> str:
+        return self.__SERVR_SEP
+
+    @SERVR_SEP.setter
+    def SERVR_SEP(self, value: str) -> None:
+        self.__SERVR_SEP = value
+
+    # ------------------------------------------------------------------ #
+    # File paths
+    # ------------------------------------------------------------------ #
+
+    @property
+    def TEMPLATE_JSON(self) -> str:
         return self.__TEMPLATE_JSON
 
-    def set_INPUT_FILE_PATH(self, value) -> None:
-        self.__INPUT_FILE_PATH = str(value)
+    @TEMPLATE_JSON.setter
+    def TEMPLATE_JSON(self, value: str) -> None:
+        self.__TEMPLATE_JSON = value
 
-    def get_INPUT_FILE_PATH(self) -> str:
+    @property
+    def INPUT_FILE_PATH(self) -> str:
         return self.__INPUT_FILE_PATH
 
-    def set_OUTPUT_FILES_DIR(self, value) -> None:
-        self.__OUTPUT_FILES_DIR = str(value)
+    @INPUT_FILE_PATH.setter
+    def INPUT_FILE_PATH(self, value: str) -> None:
+        self.__INPUT_FILE_PATH = value
 
-    def get_OUTPUT_FILES_DIR(self) -> str:
+    @property
+    def OUTPUT_FILES_DIR(self) -> str:
         return self.__OUTPUT_FILES_DIR
 
-    def set_ICCID(self, value):
-        self.__ICCID = str(value)
+    @OUTPUT_FILES_DIR.setter
+    def OUTPUT_FILES_DIR(self, value: str) -> None:
+        self.__OUTPUT_FILES_DIR = value
 
-    def set_IMSI(self, value):
-        self.__IMSI = str(value)
+    # ------------------------------------------------------------------ #
+    # SIM parameters
+    # ------------------------------------------------------------------ #
 
-    def set_PIN1(self, value):
-        self.__PIN1 = str(value)
-
-    def set_PUK1(self, value):
-        self.__PUK1 = str(value)
-
-    def set_PIN2(self, value):
-        self.__PIN2 = str(value)
-
-    def set_PUK2(self, value):
-        self.__PUK2 = str(value)
-
-    def set_OP(self, value):
-        self.__OP = str(value)
-
-    def set_K4(self, value):
-        self.__K4 = str(value)
-
-    def set_ADM1(self, value):
-        self.__ADM1 = str(value)
-
-    def set_ADM6(self, value):
-        self.__ADM6 = str(value)
-
-    def set_ACC(self, value):
-        self.__ACC = str(value)
-
-    def set_DATA_SIZE(self, value):
-        self.__DATA_SIZE = value
-
-    def set_ELECT_CHECK(self, value: bool):
-        self.__ELECT_CHECK = value
-
-    def set_GRAPH_CHECK(self, value: bool):
-        self.__GRAPH_CHECK = value
-
-    def set_SERVER_CHECK(self, value: bool):
-        self.__SERVER_CHECK = value
-
-    def set_PRODUCTION_CHECK(self, value: bool):
-        self.__PROD_CHECK = not value
-
-    def set_DEFAULT_HEADER(self, value: list):
-        self.__def_head = value
-
-    def get_ICCID(self):
+    @property
+    def ICCID(self) -> str:
         return self.__ICCID
 
-    def get_IMSI(self):
+    @ICCID.setter
+    def ICCID(self, value: str) -> None:
+        self.__ICCID = value
+
+    @property
+    def IMSI(self) -> str:
         return self.__IMSI
 
-    def get_PIN1(self):
+    @IMSI.setter
+    def IMSI(self, value: str) -> None:
+        self.__IMSI = value
+
+    @property
+    def PIN1(self) -> str:
         return self.__PIN1
 
-    def get_PUK1(self):
+    @PIN1.setter
+    def PIN1(self, value: str) -> None:
+        self.__PIN1 = value
+
+    @property
+    def PUK1(self) -> str:
         return self.__PUK1
 
-    def get_PIN2(self):
+    @PUK1.setter
+    def PUK1(self, value: str) -> None:
+        self.__PUK1 = value
+
+    @property
+    def PIN2(self) -> str:
         return self.__PIN2
 
-    def get_PUK2(self):
+    @PIN2.setter
+    def PIN2(self, value: str) -> None:
+        self.__PIN2 = value
+
+    @property
+    def PUK2(self) -> str:
         return self.__PUK2
 
-    def get_OP(self):
+    @PUK2.setter
+    def PUK2(self, value: str) -> None:
+        self.__PUK2 = value
+
+    @property
+    def OP(self) -> str:
         return self.__OP
 
-    def get_K4(self):
+    @OP.setter
+    def OP(self, value: str) -> None:
+        self.__OP = value
+
+    @property
+    def K4(self) -> str:
         return self.__K4
 
-    def get_ADM1(self):
+    @K4.setter
+    def K4(self, value: str) -> None:
+        self.__K4 = value
+
+    @property
+    def ADM1(self) -> str:
         return self.__ADM1
 
-    def get_ADM6(self):
+    @ADM1.setter
+    def ADM1(self, value: str) -> None:
+        self.__ADM1 = value
+
+    @property
+    def ADM6(self) -> str:
         return self.__ADM6
 
-    def get_ACC(self):
+    @ADM6.setter
+    def ADM6(self, value: str) -> None:
+        self.__ADM6 = value
+
+    @property
+    def ACC(self) -> str:
         return self.__ACC
 
-    def get_ELECT_CHECK(self):
-        return self.__ELECT_CHECK
+    @ACC.setter
+    def ACC(self, value: str) -> None:
+        self.__ACC = value
 
-    def get_GRAPH_CHECK(self):
-        return self.__GRAPH_CHECK
-
-    def get_SERVER_CHECK(self):
-        return self.__SERVER_CHECK
-
-    def get_PRODUCTION_CHECK(self):
-        return self.__PROD_CHECK
-
-    def get_DATA_SIZE(self):
+    @property
+    def DATA_SIZE(self) -> str:
         return self.__DATA_SIZE
 
-    def get_DEFAULT_HEADER(self):
-        return self.__def_head
+    @DATA_SIZE.setter
+    def DATA_SIZE(self, value: str) -> None:
+        self.__DATA_SIZE = value
 
-    def set_PIN1_RAND(self, value: bool):
-        self.__pin1_rand = value
+    # ------------------------------------------------------------------ #
+    # Output type enable flags
+    # ------------------------------------------------------------------ #
 
-    def get_PIN1_RAND(self):
+    @property
+    def ELECT_CHECK(self) -> bool:
+        return self.__ELECT_CHECK
+
+    @ELECT_CHECK.setter
+    def ELECT_CHECK(self, value: bool) -> None:
+        self.__ELECT_CHECK = value
+
+    @property
+    def GRAPH_CHECK(self) -> bool:
+        return self.__GRAPH_CHECK
+
+    @GRAPH_CHECK.setter
+    def GRAPH_CHECK(self, value: bool) -> None:
+        self.__GRAPH_CHECK = value
+
+    @property
+    def SERVER_CHECK(self) -> bool:
+        return self.__SERVER_CHECK
+
+    @SERVER_CHECK.setter
+    def SERVER_CHECK(self, value: bool) -> None:
+        self.__SERVER_CHECK = value
+
+    # ------------------------------------------------------------------ #
+    # Randomisation flags
+    # ------------------------------------------------------------------ #
+
+    @property
+    def PIN1_RAND(self) -> bool:
         return self.__pin1_rand
 
-    def set_PUK1_RAND(self, value: bool):
-        self.__puk1_rand = value
+    @PIN1_RAND.setter
+    def PIN1_RAND(self, value: bool) -> None:
+        self.__pin1_rand = value
 
-    def get_PUK1_RAND(self):
+    @property
+    def PUK1_RAND(self) -> bool:
         return self.__puk1_rand
 
-    def set_PIN2_RAND(self, value: bool):
-        self.__pin2_rand = value
+    @PUK1_RAND.setter
+    def PUK1_RAND(self, value: bool) -> None:
+        self.__puk1_rand = value
 
-    def get_PIN2_RAND(self):
+    @property
+    def PIN2_RAND(self) -> bool:
         return self.__pin2_rand
 
-    def set_PUK2_RAND(self, value: bool):
-        self.__puk2_rand = value
+    @PIN2_RAND.setter
+    def PIN2_RAND(self, value: bool) -> None:
+        self.__pin2_rand = value
 
-    def get_PUK2_RAND(self):
+    @property
+    def PUK2_RAND(self) -> bool:
         return self.__puk2_rand
 
-    def set_ADM1_RAND(self, value: bool):
-        self.__adm1_rand = value
+    @PUK2_RAND.setter
+    def PUK2_RAND(self, value: bool) -> None:
+        self.__puk2_rand = value
 
-    def get_ADM1_RAND(self):
+    @property
+    def ADM1_RAND(self) -> bool:
         return self.__adm1_rand
 
-    def set_ADM6_RAND(self, value: bool):
-        self.__adm6_rand = value
+    @ADM1_RAND.setter
+    def ADM1_RAND(self, value: bool) -> None:
+        self.__adm1_rand = value
 
-    def get_ADM6_RAND(self):
+    @property
+    def ADM6_RAND(self) -> bool:
         return self.__adm6_rand
 
-    def set_ACC_RAND(self, value: bool):
-        self.__acc_rand = value
+    @ADM6_RAND.setter
+    def ADM6_RAND(self, value: bool) -> None:
+        self.__adm6_rand = value
 
-    def get_ACC_RAND(self):
+    @property
+    def ACC_RAND(self) -> bool:
         return self.__acc_rand
 
-    def set_INPUT_PATH(self, value: str):
-        self.__INPUT_PATH = value
+    @ACC_RAND.setter
+    def ACC_RAND(self, value: bool) -> None:
+        self.__acc_rand = value
 
-    def get_INPUT_PATH(self):
-        return self.__INPUT_PATH
+    # ------------------------------------------------------------------ #
+    # Output variable dictionaries
+    # ------------------------------------------------------------------ #
 
-    def set_LASER_EXT_PATH(self, value: str):
-        self.__LASER_EXT_PATH = value
-
-    def get_LASER_EXT_PATH(self):
-        return self.__LASER_EXT_PATH
-
-    def set_ELECT_DICT(self, value: dict):
-        self.__ELECT_DICT = value
-
-    def get_ELECT_DICT(self):
+    @property
+    def ELECT_DICT(self) -> dict:
         return self.__ELECT_DICT
 
-    def set_GRAPH_DICT(self, value: dict):
-        self.__GRAPH_DICT = value
+    @ELECT_DICT.setter
+    def ELECT_DICT(self, value: dict) -> None:
+        self.__ELECT_DICT = value
 
-    def get_GRAPH_DICT(self):
+    @property
+    def GRAPH_DICT(self) -> dict:
         return self.__GRAPH_DICT
 
-    def set_SERVER_DICT(self, value: dict):
-        self.__SERVER_DICT = value
+    @GRAPH_DICT.setter
+    def GRAPH_DICT(self, value: dict) -> None:
+        self.__GRAPH_DICT = value
 
-    def get_SERVER_DICT(self):
+    @property
+    def SERVER_DICT(self) -> dict:
         return self.__SERVER_DICT
 
-    def set_file_name(self, value: str):
-        self.file_name = value
+    @SERVER_DICT.setter
+    def SERVER_DICT(self, value: dict) -> None:
+        self.__SERVER_DICT = value
 
-    def get_file_name(self) -> str:
-        return self.file_name
-
-    def get_all_params_dict(self) -> dict:
-        param_dict = {
-            "Demo Data": self.get_PRODUCTION_CHECK(),
-            "OP": self.get_OP(),
-            "K4": self.get_K4(),
-            "ICCID": self.get_ICCID(),
-            "IMSI": self.get_IMSI(),
-            "PIN1": self.get_PIN1(),
-            "PUK1": self.get_PUK1(),
-            "PIN2": self.get_PIN2(),
-            "PUK2": self.get_PUK2(),
-            "ADM1": self.get_ADM1(),
-            "ADM6": self.get_ADM6(),
-            "ACC": self.get_ACC(),
-            "DATA_SIZE": self.get_DATA_SIZE(),
-            "INPUT_PATH": self.get_INPUT_PATH(),
-        }
-        print(param_dict)
-        return param_dict
+    # ------------------------------------------------------------------ #
+    # Validation
+    # ------------------------------------------------------------------ #
 
     @staticmethod
-    def is_valid(param1, param_name: str):
-        result = False
-        param = param1
+    def is_valid(param, param_name: str) -> bool:
+        """Return True if `param` satisfies the length/format rule for `param_name`."""
         match param_name:
             case "ICCID":
-                result = (
-                    len(str(param)) == 20
-                    or len(str(param)) == 19
-                    or len(str(param)) == 18
-                )
+                return len(str(param)) in (18, 19, 20)
             case "IMSI":
-                result = len(str(param)) == 15
+                return len(str(param)) == 15
             case "PIN1" | "PIN2":
-                result = len(str(param)) == 4
+                return len(str(param)) == 4
             case "PUK1" | "PUK2" | "ADM1" | "ADM6":
-                result = len(str(param)) == 8
+                return len(str(param)) == 8
             case "OP":
-                result = len(str(param)) == 32
+                return len(str(param)) == 32
             case "K4":
-                result = (len(str(param)) == 64) or (len(str(param)) == 32)
+                return len(str(param)) in (32, 64)
             case "SIZE":
-                param = int(param)
-                result = len(str(param)) != 0 or param > 0
+                return int(param) > 0
             case "DICT":
-                param = dict(param)
-                result = len(param) > 0
-        print(param_name, result)
-        return result
+                return len(dict(param)) > 0
+            case _:
+                return False
 
     @staticmethod
     def is_valid_df(param, param_name: str) -> bool:
-        match param_name:
-            case "DF":
-                df = pd.DataFrame(param)
-                return df.empty
-            case _:
-                # Default behavior if param_name doesn't match any known case
-                return False
+        """Return True if the DataFrame is empty (i.e. not yet populated)."""
+        if param_name == "DF":
+            return pd.DataFrame(param).empty
+        return False
 
     def check_params(self) -> bool:
-        if not self.get_PRODUCTION_CHECK():
-            print("===============Production===============")
-            result = (
-                #                self.is_valid(self.get_IMSI(), "IMSI")
-                #                and self.is_valid(self.get_ICCID(), "ICCID")
-                self.is_valid(self.get_PIN1(), "PIN1")
-                and self.is_valid(self.get_PUK1(), "PUK1")
-                and self.is_valid(self.get_PIN2(), "PIN2")
-                and self.is_valid(self.get_PUK2(), "PUK2")
-                and self.is_valid(self.get_ADM1(), "ADM1")
-                and self.is_valid(self.get_ADM6(), "ADM6")
-                and self.is_valid(self.get_OP(), "OP")
-                and self.is_valid(self.get_K4(), "K4")
-                #                and self.is_valid(self.get_DATA_SIZE(), "SIZE")
-                and self.is_valid(self.get_ELECT_DICT(), "DICT")
-                and self.is_valid(self.get_GRAPH_DICT(), "DICT")
-            )
-        else:
-            print("=================Demo===================")
-            result = (
-                self.is_valid(self.get_IMSI(), "IMSI")
-                and self.is_valid(self.get_ICCID(), "ICCID")
-                and self.is_valid(self.get_DATA_SIZE(), "SIZE")
-                and self.is_valid(self.get_PIN1(), "PIN1")
-                and self.is_valid(self.get_PUK1(), "PUK1")
-                and self.is_valid(self.get_PIN2(), "PIN2")
-                and self.is_valid(self.get_PUK2(), "PUK2")
-                and self.is_valid(self.get_ADM1(), "ADM1")
-                and self.is_valid(self.get_ADM6(), "ADM6")
-                and self.is_valid(self.get_OP(), "OP")
-                and self.is_valid(self.get_K4(), "K4")
-                and self.is_valid(self.get_ELECT_DICT(), "DICT")
-                and self.is_valid(self.get_GRAPH_DICT(), "DICT")
-                # self.is_VALID_DF(self.get_ELECT_DF,"DF")
-            )
-        return result
+        """Return True if all required SIM parameters pass format validation."""
+        return (
+            self.is_valid(self.IMSI, "IMSI")
+            and self.is_valid(self.ICCID, "ICCID")
+            and self.is_valid(self.DATA_SIZE, "SIZE")
+            and self.is_valid(self.PIN1, "PIN1")
+            and self.is_valid(self.PUK1, "PUK1")
+            and self.is_valid(self.PIN2, "PIN2")
+            and self.is_valid(self.PUK2, "PUK2")
+            and self.is_valid(self.ADM1, "ADM1")
+            and self.is_valid(self.ADM6, "ADM6")
+            and self.is_valid(self.OP, "OP")
+            and self.is_valid(self.K4, "K4")
+            and self.is_valid(self.ELECT_DICT, "DICT")
+            and self.is_valid(self.GRAPH_DICT, "DICT")
+        )
 
-    def print_all_global_parameters(self):
-        print("PIN1", self.get_PIN1())
-        print("PIN2", self.get_PIN2())
-        print("PIN2", self.get_PIN2())
-        print("DATA SIZE", self.get_DATA_SIZE())
+    def get_all_params_dict(self) -> dict:
+        return {
+            "OP": self.OP,
+            "K4": self.K4,
+            "ICCID": self.ICCID,
+            "IMSI": self.IMSI,
+            "PIN1": self.PIN1,
+            "PUK1": self.PUK1,
+            "PIN2": self.PIN2,
+            "PUK2": self.PUK2,
+            "ADM1": self.ADM1,
+            "ADM6": self.ADM6,
+            "ACC": self.ACC,
+            "DATA_SIZE": self.DATA_SIZE,
+        }
+
+    def print_all_global_parameters(self) -> None:
+        """Print all major configuration parameters (for debugging)."""
+        print("======= Current Global Parameters =======")
+        for key, value in self.get_all_params_dict().items():
+            print(f"  {key}: {value}")
+        print(f"  ELECT_DICT: {self.ELECT_DICT}")
+        print(f"  GRAPH_DICT: {self.GRAPH_DICT}")
+        print(f"  SERVER_DICT: {self.SERVER_DICT}")
 
 
 __all__ = ["Parameters", "DataFrames"]

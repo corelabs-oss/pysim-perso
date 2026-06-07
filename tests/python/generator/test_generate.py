@@ -22,10 +22,17 @@ def test_generate_otas():
     assert re.fullmatch(r"[0-9A-F]+", otas)
 
 
-def test_generate_k4():
-    k4 = generator.DataGenerator.generate_k4()
+@pytest.mark.parametrize(
+    "lenght, expected",
+    [
+        (32, 64),
+        (64, 128),
+    ],
+)
+def test_generate_k4(lenght, expected):
+    k4 = generator.DataGenerator.generate_k4(lenght)
     assert isinstance(k4, str)
-    assert len(k4) == 64  # 32 bytes -> 64 hex chars
+    assert len(k4) == expected  # 32 bytes -> 64 hex chars
     assert re.fullmatch(r"[0-9A-F]+", k4)
 
 
