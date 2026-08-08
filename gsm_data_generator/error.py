@@ -127,3 +127,44 @@ class DiagnosticError(DATAGENError):
 
     See the configured diagnostic renderer for detailed error information.
     """
+
+
+# @register_error
+class ConfigValidationError(DATAGENError, ValueError):
+    """Configuration parameters failed validation before data generation.
+
+    Raised by :meth:`DataGenerationScript.generate_all_data` when the config
+    enables ``prod_check`` and one or more parameters are invalid. The message
+    lists every failing parameter rather than stopping at the first one.
+
+    Also inherits from :class:`ValueError` so that callers which already catch
+    ``ValueError`` around configuration handling keep working.
+
+    Example
+    -------
+    .. code:: python
+
+        raise ConfigValidationError(
+            "Parameter validation failed (prod_check is enabled):\\n"
+            "  - IMSI has an invalid value or length: '1234'"
+        )
+    """
+
+
+# @register_error
+class IssuanceOverlapError(DATAGENError):
+    """A batch would re-issue identifiers that were already issued.
+
+    Re-running a configuration produces the same ICCID and IMSI sequences but
+    fresh Ki values, so two physical cards would carry the same ICCID with
+    different keys. The issuance ledger turns that silent collision into an
+    error.
+
+    Example
+    -------
+    .. code:: python
+
+        raise IssuanceOverlapError(
+            "ICCID range 8991...000-8991...009 overlaps batch 1"
+        )
+    """

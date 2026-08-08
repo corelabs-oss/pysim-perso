@@ -48,9 +48,9 @@ def valid_config_dict():
             "OUTPUT_FILES_LASER_EXT": ".laser",
         },
         "PARAMETERS": {
-            "server_variables": ["host", "port"],
-            "data_variables": ["imsi", "iccid"],
-            "laser_variables": {"laser1": ["x", "y"]},
+            "server_variables": ["IMSI", "ICCID"],
+            "data_variables": ["IMSI", "ICCID"],
+            "laser_variables": {"0": ["ICCID", "Normal", "0-18"]},
         },
     }
 
@@ -78,7 +78,7 @@ def test_paths_validation(valid_config_dict):
 
 def test_parameters_validation(valid_config_dict):
     params = PARAMETERS(**valid_config_dict["PARAMETERS"])
-    assert "host" in params.server_variables
+    assert "IMSI" in params.server_variables
     assert isinstance(params.laser_variables, dict)
 
 

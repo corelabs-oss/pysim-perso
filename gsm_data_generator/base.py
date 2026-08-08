@@ -25,7 +25,7 @@ except ImportError:
 from .libinfo import __version__
 from .error import DATAGENError
 
-if sys.version_info < (3, 9):
-    raise RuntimeError("gsm-data-generator requires Python 3.9 or newer")
+if sys.version_info < (3, 10):
+    raise RuntimeError("gsm-data-generator requires Python 3.10 or newer")
 
 __all__ = ["__version__", "DATAGENError"]
