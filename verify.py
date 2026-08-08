@@ -153,10 +153,15 @@ def main() -> int:
                 script = DataGenerationScript(config)
                 script.json_to_global_params()
 
-                from gsm_data_generator import Parameters
-                p = Parameters.get_instance()
-                params_ok = p.check_params()
-                failures += 0 if check("Parameters validation", params_ok) else 1
+                # Read the run's state through the script: each
+                # DataGenerationScript owns its own Parameters, so
+                # Parameters.get_instance() is no longer where it lives.
+                validation_failures = script.params.validate_params()
+                failures += 0 if check(
+                    "Parameters validation",
+                    not validation_failures,
+                    "; ".join(validation_failures),
+                ) else 1
 
                 result_dfs, keys = script.generate_all_data()
                 failures += 0 if check("Pipeline completed without error", True) else 1

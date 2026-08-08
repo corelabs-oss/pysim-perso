@@ -95,30 +95,30 @@ def script():
 # ------------------------------------------------------------------ #
 
 def test_json_to_global_params_sets_imsi(script):
-    p = Parameters.get_instance()
+    p = script.params
     assert p.IMSI == "111111111121111"
 
 
 def test_json_to_global_params_sets_k4(script):
-    p = Parameters.get_instance()
+    p = script.params
     assert p.K4 == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
 def test_json_to_global_params_sets_separators(script):
-    p = Parameters.get_instance()
+    p = script.params
     assert p.ELECT_SEP == ","
     assert p.SERVER_SEP == ","
 
 
 def test_json_to_global_params_sets_check_flags(script):
-    p = Parameters.get_instance()
+    p = script.params
     assert p.ELECT_CHECK is True
     assert p.GRAPH_CHECK is True
     assert p.SERVER_CHECK is False
 
 
 def test_json_to_global_params_sets_rand_flags(script):
-    p = Parameters.get_instance()
+    p = script.params
     # _BASE_CONFIG has all _fix=True, which maps to *_RAND=True (use fixed value)
     assert p.PIN1_RAND is True
     assert p.ADM1_RAND is True
@@ -129,14 +129,14 @@ def test_json_to_global_params_sets_rand_flags(script):
 # ------------------------------------------------------------------ #
 
 def test_generate_pin_returns_fixed_value_when_rand_true(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.PIN1 = "9876"
     p.PIN1_RAND = True
     assert script.generate_pin("PIN1") == "9876"
 
 
 def test_generate_pin_returns_random_4_digits_when_rand_false(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.PIN1_RAND = False
     result = script.generate_pin("PIN1")
     assert len(result) == 4
@@ -145,7 +145,7 @@ def test_generate_pin_returns_random_4_digits_when_rand_false(script):
 
 def test_generate_pin_random_differs_from_fixed(script):
     """Random PIN should not be locked to the stored value."""
-    p = Parameters.get_instance()
+    p = script.params
     p.PIN1 = "0000"
     p.PIN1_RAND = False
     # Generate multiple times — at least one should differ from "0000"
@@ -154,7 +154,7 @@ def test_generate_pin_random_differs_from_fixed(script):
 
 
 def test_generate_pin2_fixed(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.PIN2 = "5678"
     p.PIN2_RAND = True
     assert script.generate_pin("PIN2") == "5678"
@@ -165,14 +165,14 @@ def test_generate_pin2_fixed(script):
 # ------------------------------------------------------------------ #
 
 def test_generate_puk_returns_fixed_value_when_rand_true(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.PUK1 = "87654321"
     p.PUK1_RAND = True
     assert script.generate_puk("PUK1") == "87654321"
 
 
 def test_generate_puk_returns_random_8_digits_when_rand_false(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.PUK1_RAND = False
     result = script.generate_puk("PUK1")
     assert len(result) == 8
@@ -180,7 +180,7 @@ def test_generate_puk_returns_random_8_digits_when_rand_false(script):
 
 
 def test_generate_puk2_fixed(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.PUK2 = "11223344"
     p.PUK2_RAND = True
     assert script.generate_puk("PUK2") == "11223344"
@@ -191,14 +191,14 @@ def test_generate_puk2_fixed(script):
 # ------------------------------------------------------------------ #
 
 def test_generate_adm_returns_fixed_value_when_rand_true(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.ADM1 = "ABCD1234"
     p.ADM1_RAND = True
     assert script.generate_adm("ADM1") == "ABCD1234"
 
 
 def test_generate_adm_returns_random_8_digits_when_rand_false(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.ADM1_RAND = False
     result = script.generate_adm("ADM1")
     assert len(result) == 8
@@ -206,7 +206,7 @@ def test_generate_adm_returns_random_8_digits_when_rand_false(script):
 
 
 def test_generate_adm6_fixed(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.ADM6 = "FFFFAAAA"
     p.ADM6_RAND = True
     assert script.generate_adm("ADM6") == "FFFFAAAA"
@@ -259,7 +259,7 @@ def test_generate_initial_data_demo_returns_df_and_keys(script):
 
 def test_generate_initial_data_demo_keys_match_params(script):
     _, keys = script.generate_initial_data(is_demo=True)
-    p = Parameters.get_instance()
+    p = script.params
     assert keys["k4"] == p.K4
     assert keys["op"] == p.OP
 
@@ -274,7 +274,7 @@ def test_generate_initial_data_non_demo_raises_runtime_error(script):
 # ------------------------------------------------------------------ #
 
 def test_generate_all_data_raises_when_enabled_dict_is_empty(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.ELECT_CHECK = True
     p.ELECT_DICT = {}  # enabled but empty dict
     with pytest.raises(ValueError, match="ELECT"):
@@ -282,7 +282,7 @@ def test_generate_all_data_raises_when_enabled_dict_is_empty(script):
 
 
 def test_generate_all_data_raises_when_server_dict_missing(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.SERVER_CHECK = True
     p.SERVER_DICT = {}
     with pytest.raises(ValueError, match="SERVER"):
@@ -290,14 +290,14 @@ def test_generate_all_data_raises_when_server_dict_missing(script):
 
 
 def test_generate_all_data_skips_disabled_output_types(script):
-    p = Parameters.get_instance()
+    p = script.params
     p.SERVER_CHECK = False
     result_dfs, _ = script.generate_all_data()
     assert "SERVER" not in result_dfs
 
 
 def test_generate_all_data_returns_correct_row_count(script):
-    p = Parameters.get_instance()
+    p = script.params
     result_dfs, _ = script.generate_all_data()
     expected_rows = int(p.DATA_SIZE)
     for df in result_dfs.values():

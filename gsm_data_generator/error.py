@@ -149,3 +149,22 @@ class ConfigValidationError(DATAGENError, ValueError):
             "  - IMSI has an invalid value or length: '1234'"
         )
     """
+
+
+# @register_error
+class IssuanceOverlapError(DATAGENError):
+    """A batch would re-issue identifiers that were already issued.
+
+    Re-running a configuration produces the same ICCID and IMSI sequences but
+    fresh Ki values, so two physical cards would carry the same ICCID with
+    different keys. The issuance ledger turns that silent collision into an
+    error.
+
+    Example
+    -------
+    .. code:: python
+
+        raise IssuanceOverlapError(
+            "ICCID range 8991...000-8991...009 overlaps batch 1"
+        )
+    """
