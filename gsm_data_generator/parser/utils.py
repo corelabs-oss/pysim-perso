@@ -143,7 +143,9 @@ class ConfigHolder:
 
 
 def json_loader(path: str) -> ConfigHolder:
-    with open(path, "r") as f:
+    # Explicit encoding: the default is locale-dependent, so a config
+    # containing non-ASCII would fail to load on Windows.
+    with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     config = ConfigData(**data)
     config_holder = ConfigHolder.from_config(config)

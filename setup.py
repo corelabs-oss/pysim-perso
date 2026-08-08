@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=invalid-name, exec-used
 """Setup DATAGEN package."""
+
 import os
 import pathlib
 import shutil

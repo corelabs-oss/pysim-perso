@@ -19,6 +19,7 @@
 Every case here previously passed configuration validation and then failed
 somewhere deep in the pipeline — or, worse, silently produced wrong output.
 """
+
 import copy
 
 import pytest
@@ -75,10 +76,11 @@ def cfg():
 # Character-set validation — these used to crash inside int()/binascii
 # ------------------------------------------------------------------ #
 
+
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("imsi", "41009207861599x"),   # 15 chars but not numeric
+        ("imsi", "41009207861599x"),  # 15 chars but not numeric
         ("iccid", "78600786999999800XY"),
         ("pin1", "abcd"),
         ("pin2", "12a4"),
@@ -110,6 +112,7 @@ def test_adm_allows_printable_alphanumeric(cfg):
 # K4 must land on a real AES key size
 # ------------------------------------------------------------------ #
 
+
 @pytest.mark.parametrize("hex_len", [32, 48, 64])
 def test_k4_valid_aes_key_sizes_accepted(cfg, hex_len):
     cfg["DISP"]["K4"] = "A" * hex_len
@@ -128,6 +131,7 @@ def test_k4_invalid_aes_key_sizes_rejected(cfg, hex_len):
 # Output column selections must name real columns
 # ------------------------------------------------------------------ #
 
+
 @pytest.mark.parametrize("field", ["data_variables", "server_variables"])
 def test_unknown_output_column_rejected(cfg, field):
     cfg["PARAMETERS"][field] = ["IMSI", "CELL_ID"]
@@ -145,6 +149,7 @@ def test_lowercase_column_names_rejected(cfg):
 # ------------------------------------------------------------------ #
 # laser_variables structure
 # ------------------------------------------------------------------ #
+
 
 def test_laser_key_must_be_integer_position(cfg):
     cfg["PARAMETERS"]["laser_variables"] = {"laser1": ["ICCID", "Normal", "0-3"]}
@@ -196,6 +201,7 @@ def test_empty_laser_variables_accepted(cfg):
 # ------------------------------------------------------------------ #
 # No regression on the shipped example config
 # ------------------------------------------------------------------ #
+
 
 def test_valid_config_still_accepted(cfg):
     holder = json_loader_2_ConfigHolder(cfg)

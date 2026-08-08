@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """File output and the issuance ledger that guards against re-issuing."""
+
 import copy
 import json
 
@@ -30,19 +31,34 @@ from gsm_data_generator.writer import OutputWriter
 
 _BASE = {
     "DISP": {
-        "elect_data_sep": ",", "server_data_sep": ";", "graph_data_sep": "|",
-        "K4": "A" * 32, "op": "A" * 32,
-        "imsi": "111111111121111", "iccid": "111111111121221111",
-        "pin1": "1111", "puk1": "11111111",
-        "pin2": "1111", "puk2": "11111111",
-        "adm1": "11111111", "adm6": "11111111",
-        "size": 3, "prod_check": True,
-        "elect_check": True, "graph_check": True, "server_check": True,
-        "pin1_fix": True, "puk1_fix": True, "pin2_fix": True, "puk2_fix": True,
-        "adm1_fix": False, "adm6_fix": False,
+        "elect_data_sep": ",",
+        "server_data_sep": ";",
+        "graph_data_sep": "|",
+        "K4": "A" * 32,
+        "op": "A" * 32,
+        "imsi": "111111111121111",
+        "iccid": "111111111121221111",
+        "pin1": "1111",
+        "puk1": "11111111",
+        "pin2": "1111",
+        "puk2": "11111111",
+        "adm1": "11111111",
+        "adm6": "11111111",
+        "size": 3,
+        "prod_check": True,
+        "elect_check": True,
+        "graph_check": True,
+        "server_check": True,
+        "pin1_fix": True,
+        "puk1_fix": True,
+        "pin2_fix": True,
+        "puk2_fix": True,
+        "adm1_fix": False,
+        "adm6_fix": False,
     },
     "PATHS": {
-        "FILE_NAME": "BATCH_001", "OUTPUT_FILES_DIR": "out",
+        "FILE_NAME": "BATCH_001",
+        "OUTPUT_FILES_DIR": "out",
         "OUTPUT_FILES_LASER_EXT": "laser_extracted",
     },
     "PARAMETERS": {
@@ -81,6 +97,7 @@ def _script(config):
 # OutputWriter
 # ------------------------------------------------------------------ #
 
+
 def test_writes_one_file_per_enabled_output(config, tmp_path):
     script = _script(config)
     written = script.write_outputs(script.generate_all_data()[0])
@@ -113,9 +130,7 @@ def test_row_count_matches_size_plus_header(config):
 
 def test_header_can_be_suppressed(config):
     script = _script(config)
-    written = script.write_outputs(
-        script.generate_all_data()[0], include_header=False
-    )
+    written = script.write_outputs(script.generate_all_data()[0], include_header=False)
     assert len(written["SERVER"].read_text().splitlines()) == 3
 
 
@@ -142,6 +157,7 @@ def test_writer_rejects_unknown_output_type(tmp_path):
 # ------------------------------------------------------------------ #
 # IssuanceLedger
 # ------------------------------------------------------------------ #
+
 
 def test_ledger_is_written_beside_the_output(config, tmp_path):
     script = _script(config)

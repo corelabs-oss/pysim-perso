@@ -517,9 +517,7 @@ class Parameters(DataFrames):
             (self.SERVER_CHECK, self.SERVER_DICT, "SERVER_DICT"),
         ):
             if enabled and not self.is_valid(variables, "DICT"):
-                failures.append(
-                    f"{name} is empty but its output type is enabled"
-                )
+                failures.append(f"{name} is empty but its output type is enabled")
 
         return failures
 

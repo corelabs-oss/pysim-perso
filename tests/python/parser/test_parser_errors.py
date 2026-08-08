@@ -78,6 +78,7 @@ def base_config():
 # json_loader_2_ConfigHolder — happy path
 # ------------------------------------------------------------------ #
 
+
 def test_valid_dict_returns_config_holder(base_config):
     result = json_loader_2_ConfigHolder(base_config)
     assert isinstance(result, ConfigHolder)
@@ -102,6 +103,7 @@ def test_config_holder_fields_match_input(base_config):
 # json_loader_2_ConfigHolder — bad input type
 # ------------------------------------------------------------------ #
 
+
 def test_bad_json_string_raises_value_error():
     with pytest.raises(ValueError, match="Invalid JSON string"):
         json_loader_2_ConfigHolder("{not: valid json}")
@@ -125,6 +127,7 @@ def test_list_input_raises_value_error():
 # ------------------------------------------------------------------ #
 # json_loader_2_ConfigHolder — missing required fields
 # ------------------------------------------------------------------ #
+
 
 def test_missing_disp_section_raises(base_config):
     del base_config["DISP"]
@@ -159,6 +162,7 @@ def test_missing_pin1_raises_validation_error(base_config):
 # ------------------------------------------------------------------ #
 # json_loader_2_ConfigHolder — field length / value constraints
 # ------------------------------------------------------------------ #
+
 
 def test_imsi_too_short_raises_validation_error(base_config):
     base_config["DISP"]["imsi"] = "12345678901234"  # 14 chars, need 15
@@ -229,6 +233,7 @@ def test_empty_separator_raises_validation_error(base_config):
 # ------------------------------------------------------------------ #
 # json_loader — file-based loading
 # ------------------------------------------------------------------ #
+
 
 def test_json_loader_file_not_found():
     with pytest.raises(FileNotFoundError):

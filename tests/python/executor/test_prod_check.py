@@ -19,6 +19,7 @@
 The flag was previously parsed and stored but never read, so the validation it
 advertises never ran.
 """
+
 import copy
 
 import pytest
@@ -140,6 +141,7 @@ def test_config_validation_error_is_a_datagen_error():
 # ------------------------------------------------------------------ #
 # validate_params() reports detail; check_params() keeps its old contract
 # ------------------------------------------------------------------ #
+
 
 def test_validate_params_returns_empty_list_when_valid():
     s = _script(copy.deepcopy(_BASE_CONFIG))
