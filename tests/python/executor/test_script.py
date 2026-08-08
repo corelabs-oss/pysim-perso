@@ -138,15 +138,54 @@ p.PUK2_RAND = False
 p.ADM1_RAND = False
 p.ADM6_RAND = False
 
-p.ELECT_DICT = list_2_dict([
-    "IMSI", "ICCID", "PIN1", "PUK1", "PIN2", "PUK2", "ADM1", "ADM6", "KI", "OPC", "ACC",
-    "KIC1", "KID1", "KIK1", "KIC2", "KID2", "KIK2", "KIC3", "KID3", "KIK3"
-])
+p.ELECT_DICT = list_2_dict(
+    [
+        "IMSI",
+        "ICCID",
+        "PIN1",
+        "PUK1",
+        "PIN2",
+        "PUK2",
+        "ADM1",
+        "ADM6",
+        "KI",
+        "OPC",
+        "ACC",
+        "KIC1",
+        "KID1",
+        "KIK1",
+        "KIC2",
+        "KID2",
+        "KIK2",
+        "KIC3",
+        "KID3",
+        "KIK3",
+    ]
+)
 
-p.SERVER_DICT = list_2_dict([
-    "IMSI", "EKI", "ICCID", "PIN1", "PUK1", "PIN2", "PUK2", "ADM1", "ADM6", "ACC",
-    "KIC1", "KID1", "KIK1", "KIC2", "KID2", "KIK2", "KIC3", "KID3", "KIK3"
-])
+p.SERVER_DICT = list_2_dict(
+    [
+        "IMSI",
+        "EKI",
+        "ICCID",
+        "PIN1",
+        "PUK1",
+        "PIN2",
+        "PUK2",
+        "ADM1",
+        "ADM6",
+        "ACC",
+        "KIC1",
+        "KID1",
+        "KIK1",
+        "KIC2",
+        "KID2",
+        "KIK2",
+        "KIC3",
+        "KID3",
+        "KIK3",
+    ]
+)
 
 p.GRAPH_DICT = {
     "0": ["ICCID", "Normal", "0-20"],
@@ -585,7 +624,7 @@ def test_data_generation_script_runs(params_dict, expected_bools, size):
 
     # Step 1: apply JSON params to global Parameters singleton
     script.json_to_global_params()
-    p = Parameters.get_instance()
+    p = script.params
 
     # sanity checks (fixed values)
     assert p.IMSI == "111111111121111"

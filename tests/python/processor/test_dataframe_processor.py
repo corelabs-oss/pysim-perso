@@ -28,6 +28,7 @@ COLS = ["ICCID", "IMSI", "PIN1", "PUK1"]
 # generate_empty_dataframe
 # ------------------------------------------------------------------ #
 
+
 def test_generate_empty_dataframe_shape():
     df = DataFrameProcessor.generate_empty_dataframe(COLS, "5")
     assert df.shape == (5, len(COLS))
@@ -52,6 +53,7 @@ def test_generate_empty_dataframe_single_row():
 # ------------------------------------------------------------------ #
 # initialize_column
 # ------------------------------------------------------------------ #
+
 
 def test_initialize_column_incrementing():
     df = DataFrameProcessor.generate_empty_dataframe(["ICCID"], "4")
@@ -82,6 +84,7 @@ def test_initialize_column_zero_start():
 # apply_function_to_column
 # ------------------------------------------------------------------ #
 
+
 def test_apply_function_to_column_transforms_values():
     df = pd.DataFrame({"src": ["abc", "def"], "dest": ["", ""]})
     DataFrameProcessor.apply_function_to_column(df, "dest", "src", str.upper)
@@ -103,6 +106,7 @@ def test_apply_function_to_column_lambda():
 # ------------------------------------------------------------------ #
 # clip_columns
 # ------------------------------------------------------------------ #
+
 
 def test_clip_columns_single_column():
     df = pd.DataFrame({"A": ["ABCDEF"]})
@@ -140,6 +144,7 @@ def test_clip_columns_multiple_rows():
 # add_duplicate_columns
 # ------------------------------------------------------------------ #
 
+
 def test_add_duplicate_columns_creates_numbered_copies():
     df = pd.DataFrame({"KI": ["AABBCC"]})
     headers = ["KI", "KI0", "KI1"]
@@ -167,6 +172,7 @@ def test_add_duplicate_columns_values_match_source():
 # ------------------------------------------------------------------ #
 # encode_dataframe / decode_dataframe
 # ------------------------------------------------------------------ #
+
 
 def test_encode_dataframe_applies_pin_encoding():
     df = pd.DataFrame({"PIN1": ["1234"]})

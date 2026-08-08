@@ -1,0 +1,261 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  # Dependencies are intentionally unpinned, so a weekly run surfaces upstream
+  # breakage (pandas/pydantic majors) without waiting for someone to open a PR.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Superseded runs on the same ref are pointless; cancel them.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEFAULT_PYTHON: "3.11"
+  # Pinned so a new release cannot turn CI red without a deliberate bump.
+  BLACK_VERSION: "26.5.1"
+  MYPY_VERSION: "2.3.0"
+
+jobs:
+  # ------------------------------------------------------------------ #
+  # Formatting
+  # ------------------------------------------------------------------ #
+  format:
+    name: Format (black)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Install black
+        run: python -m pip install --upgrade pip "black==${BLACK_VERSION}"
+
+      - name: Check formatting
+        run: black --check --diff gsm_data_generator/ tests/python/ verify.py setup.py
+
+  # ------------------------------------------------------------------ #
+  # Static typing
+  # ------------------------------------------------------------------ #
+  typecheck:
+    name: Types (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          cache: pip
+          cache-dependency-path: |
+            setup.py
+            gen_requirements.py
+
+      - name: Install package and type checker
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          # pandas-stubs is required: mypy.ini sets ignore_missing_imports=False,
+          # so an unstubbed pandas is a hard error rather than a warning.
+          python -m pip install "mypy==${MYPY_VERSION}" pandas-stubs
+
+      - name: Run mypy
+        run: mypy gsm_data_generator/
+
+  # ------------------------------------------------------------------ #
+  # Tests
+  # ------------------------------------------------------------------ #
+  test:
+    name: Tests (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      # Report every failing combination, not just the first.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          # The library is pure Python, so one version per extra OS is enough
+          # to catch path, encoding and line-ending assumptions.
+          - os: windows-latest
+            python-version: "3.11"
+          - os: macos-latest
+            python-version: "3.11"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            setup.py
+            gen_requirements.py
+
+      - name: Install package and test tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest pytest-cov
+
+      - name: Check dependency consistency
+        run: python -m pip check
+
+      - name: Run test suite
+        run: >-
+          python -m pytest
+          --disable-warnings
+          -v
+          --cov=gsm_data_generator
+          --cov-report=term-missing
+          --cov-report=xml
+          --cov-fail-under=80
+
+      - name: End-to-end verification
+        # Exercises the shipped settings.json through the full pipeline,
+        # including the 3GPP TS 35.206 OPc test vector.
+        run: python verify.py
+
+      - name: Upload coverage report
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ #
+  # Packaging
+  # ------------------------------------------------------------------ #
+  package:
+    name: Build and install
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Validate distribution metadata
+        run: twine check dist/*
+
+      - name: Assert the wheel is platform independent
+        # Regression guard: distclass=BinaryDistribution previously forced a
+        # platform-tagged wheel (cp311-cp311-linux_x86_64) for a pure-Python
+        # package, so wheels could not be reused across platforms.
+        run: |
+          wheel=$(ls dist/*.whl)
+          echo "Built: ${wheel}"
+          case "${wheel}" in
+            *-py3-none-any.whl)
+              echo "OK: platform-independent wheel" ;;
+            *)
+              echo "::error::Expected a py3-none-any wheel, got ${wheel}"
+              exit 1 ;;
+          esac
+
+      - name: Install the built wheel into a clean environment
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/python -m pip install --upgrade pip
+          /tmp/clean/bin/python -m pip install dist/*.whl
+          # Run from a directory that does not contain the source tree,
+          # otherwise sys.path[0] shadows the installed package and these
+          # steps would test the checkout rather than the built artifact.
+          mkdir -p /tmp/smoke
+          cp verify.py settings.json /tmp/smoke/
+
+      - name: Assert reported version matches package metadata
+        # Regression guard: version= was commented out in setup.py, so the
+        # distribution reported 0.0.0 while the library reported 0.0.2.dev0.
+        working-directory: /tmp/smoke
+        run: |
+          /tmp/clean/bin/python - <<'PY'
+          import importlib.metadata as md
+          import gsm_data_generator
+
+          library = gsm_data_generator.__version__
+          distribution = md.version("gsm-data-generator")
+          print(f"library={library} distribution={distribution}")
+          print(f"imported from {gsm_data_generator.__file__}")
+          if library != distribution:
+              raise SystemExit(
+                  f"::error::Version mismatch: library reports {library}, "
+                  f"distribution reports {distribution}"
+              )
+          if "site-packages" not in gsm_data_generator.__file__:
+              raise SystemExit(
+                  "::error::Imported the source tree instead of the "
+                  "installed wheel"
+              )
+          PY
+
+      - name: Smoke-test the installed package
+        working-directory: /tmp/smoke
+        run: /tmp/clean/bin/python verify.py
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ #
+  # Single required check for branch protection
+  # ------------------------------------------------------------------ #
+  ci-ok:
+    name: CI passed
+    if: always()
+    needs: [format, typecheck, test, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any upstream job did not succeed
+        run: |
+          echo "format=${{ needs.format.result }}"
+          echo "typecheck=${{ needs.typecheck.result }}"
+          echo "test=${{ needs.test.result }}"
+          echo "package=${{ needs.package.result }}"
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ] \
+             || [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "::error::One or more CI jobs failed"
+            exit 1
+          fi

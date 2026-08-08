@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Entry point for `python -m gsm_data_generator`."""
+
 from gsm_data_generator.support import describe
 
 describe()
