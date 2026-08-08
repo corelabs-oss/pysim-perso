@@ -83,15 +83,20 @@ Configuration Reference
 | `elect_data_sep` | string | Column separator for ELECT output (e.g. `","`) |
 | `server_data_sep` | string | Column separator for SERVER output |
 | `graph_data_sep` | string | Column separator for GRAPH output |
-| `K4` | hex string (32–64 chars) | Transport key — used to encrypt Ki → eKI via AES-128 |
+| `K4` | hex string, exactly **32, 48 or 64** chars | Transport key — used to encrypt Ki → eKI. The length selects the AES variant: 32 → AES-128, 48 → AES-192, 64 → AES-256. Other lengths are rejected at load time. |
 | `op` | hex string (exactly 32 chars) | Operator key — OPc = AES_Ki(OP) XOR OP |
-| `imsi` | 15 digits | Starting IMSI; each SIM gets `imsi + row_index` |
-| `iccid` | 18–19 digits | Starting ICCID; incremented per SIM |
+| `imsi` | exactly 15 digits | Starting IMSI; each SIM gets `imsi + row_index` |
+| `iccid` | 18–19 digits | Starting ICCID (**without** the Luhn check digit — it is computed and appended during encoding); incremented per SIM |
 | `pin1` / `pin2` | 4 digits | PIN value. Used as-is when `pin1_fix: true`; ignored when `false` (random generated) |
 | `puk1` / `puk2` | 8 digits | PUK value. Same fixed-vs-random logic via `puk1_fix` |
-| `adm1` / `adm6` | 8 chars | ADM codes. `adm1_fix: true` → fixed; `false` → random 8 digits per SIM |
+| `adm1` / `adm6` | 8 printable ASCII chars | ADM codes. `adm1_fix: true` → fixed; `false` → random 8 digits per SIM |
 | `size` | integer (1–1,000,000) | Number of SIM records to generate |
-| `prod_check` | bool | Validate all parameters before generation (recommended: `true`) |
+| `prod_check` | bool | Validate all parameters before generation (recommended: `true`). Raises `ConfigValidationError` listing every failing parameter. |
+
+All string fields are character-set checked at load time: identifiers must be
+numeric, key material must be hexadecimal. Invalid values raise a Pydantic
+`ValidationError` naming the offending field instead of failing later inside
+the generation pipeline.
 | `elect_check` | bool | Enable ELECT (personalization) output |
 | `graph_check` | bool | Enable GRAPH (laser) output |
 | `server_check` | bool | Enable SERVER output |
@@ -113,10 +118,23 @@ Configuration Reference
 | `server_variables` | Ordered list of columns in the SERVER output |
 | `laser_variables` | Dict mapping position index → `[column, type, "start-end"]` for GRAPH/laser output |
 
-Valid column names for `data_variables` / `server_variables`:
+Valid column names for `data_variables` / `server_variables` / `laser_variables`:
 `ICCID IMSI OP K4 PIN1 PUK1 PIN2 PUK2 KI EKI OPC ADM1 ADM6 ACC KIC1 KID1 KIK1 KIC2 KID2 KIK2 KIC3 KID3 KIK3`
 
+Names are case-sensitive and validated at load time; an unknown column is
+rejected with the list of valid names.
+
 `laser_variables` example: `"0": ["ICCID", "Normal", "0-18"]` — position 0 takes chars 0–18 of ICCID.
+
+Each entry must be exactly `[column, type, range]`, where:
+
+- the **key** is the laser print position and must be a non-negative integer
+  string (`"0"`, `"1"`, …). **Note:** entries are currently applied in the order
+  they appear in the JSON file, *not* in numeric key order — write them in
+  ascending order until this is fixed.
+- the **range** must be `"<start>-<end>"` with `start <= end`. A reversed range
+  (`"5-3"`) or an unparseable one (`"garbage"`) is rejected — previously these
+  silently produced an empty field or the whole value respectively.
 
 Features
 --------

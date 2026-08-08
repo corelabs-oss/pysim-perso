@@ -109,6 +109,21 @@ def get_lib_path():
     return libs, version
 
 
+def get_version():
+    """Read __version__ out of libinfo.py without importing the package.
+
+    Importing gsm_data_generator here would pull in pandas/pydantic, which are
+    not necessarily installed yet at setup time.
+    """
+    libinfo_py = os.path.join(CURRENT_DIR, "gsm_data_generator", "libinfo.py")
+    libinfo = {"__file__": libinfo_py}
+    exec(compile(open(libinfo_py, "rb").read(), libinfo_py, "exec"), libinfo, libinfo)
+    return libinfo["__version__"]
+
+
+__version__ = get_version()
+
+
 def git_describe_version(original_version):
     """Get git describe version."""
     ver_py = os.path.join(CURRENT_DIR, "..", "version.py")
@@ -161,7 +176,7 @@ extras_require = {
 
 setup(
     name="gsm-data-generator",
-    # version=__version__,
+    version=__version__,
     description="GSM Data Generator: A library for generating and processing GSM/USIM/eSIM SIM card datasets",
     long_description=long_description_contents(),
     long_description_content_type="text/markdown",
@@ -175,19 +190,22 @@ setup(
         "Intended Audience :: Telecommunications Industry",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries",
         "Topic :: Communications :: Telephony",
     ],
     keywords="gsm usim esim sim card data generation telecom 3gpp",
+    # match/case (globals/parameters.py) and PEP 604 unions (parser/utils.py)
+    # are used at runtime, so 3.10 is the true minimum.
+    python_requires=">=3.10",
     zip_safe=True,
     install_requires=requirements["core"][1],
     extras_require=extras_require,
-    packages=find_packages(),
-    package_dir={"gsm-data-generator": "gsm-data-generator"},
-    distclass=BinaryDistribution,
+    packages=find_packages(include=["gsm_data_generator", "gsm_data_generator.*"]),
+    # No distclass=BinaryDistribution: this is a pure-Python package, and
+    # forcing a binary distribution produced platform-tagged wheels
+    # (…-cp311-cp311-linux_x86_64.whl) that cannot be reused across platforms.
     # ext_modules=config_cython(),
     # **setup_kwargs,
 )
