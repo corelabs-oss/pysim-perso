@@ -24,6 +24,11 @@
     </td>
   </tr>
 </table>
+
+[![CI](https://github.com/hamzaqureshi5/gsm-data-generation_lib/actions/workflows/ci.yml/badge.svg)](https://github.com/hamzaqureshi5/gsm-data-generation_lib/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+
 [Documentation]() |
 [Contributors](CONTRIBUTORS.md) |
 [Community]() |
@@ -34,6 +39,11 @@ GSM Data Generator is a library for generating and processing structured dataset
 License
 -------
 Licensed under the [Apache-2.0](LICENSE) license.
+
+Requirements
+------------
+Python 3.10 or newer. Runtime dependencies (`pandas`, `pydantic`,
+`pycryptodome`, `numpy`) are installed automatically.
 
 Quick Start
 -----------
@@ -94,13 +104,17 @@ Configuration Reference
 | `graph_data_sep` | string | Column separator for GRAPH output |
 | `K4` | hex string, exactly **32, 48 or 64** chars | Transport key — used to encrypt Ki → eKI. The length selects the AES variant: 32 → AES-128, 48 → AES-192, 64 → AES-256. Other lengths are rejected at load time. |
 | `op` | hex string (exactly 32 chars) | Operator key — OPc = AES_Ki(OP) XOR OP |
-| `imsi` | exactly 15 digits | Starting IMSI; each SIM gets `imsi + row_index` |
+| `imsi` | exactly 15 digits | Starting IMSI. Only the MSIN portion is incremented — see [Identifier sequencing](#identifier-sequencing) |
 | `iccid` | 18–19 digits | Starting ICCID (**without** the Luhn check digit — it is computed and appended during encoding); incremented per SIM |
 | `pin1` / `pin2` | 4 digits | PIN value. Used as-is when `pin1_fix: true`; ignored when `false` (random generated) |
 | `puk1` / `puk2` | 8 digits | PUK value. Same fixed-vs-random logic via `puk1_fix` |
 | `adm1` / `adm6` | 8 printable ASCII chars | ADM codes. `adm1_fix: true` → fixed; `false` → random 8 digits per SIM |
 | `size` | integer (1–1,000,000) | Number of SIM records to generate |
 | `prod_check` | bool | Validate all parameters before generation (recommended: `true`). Raises `ConfigValidationError` listing every failing parameter. |
+| `elect_check` | bool | Enable ELECT (personalization) output |
+| `graph_check` | bool | Enable GRAPH (laser) output |
+| `server_check` | bool | Enable SERVER output |
+| `pin1_fix` / `puk1_fix` / `adm1_fix` … | bool | `true` = every SIM gets the fixed value above; `false` = unique random value per SIM |
 
 All string fields are character-set checked at load time: identifiers must be
 numeric, key material must be hexadecimal. Invalid values raise a Pydantic
@@ -125,10 +139,6 @@ the generation pipeline.
 > under every numbering plan. Where the MNC is 3 digits (the North American
 > Numbering Plan) its final digit sits inside the incremented range and is not
 > covered; keep such batches well clear of the MSIN boundary.
-| `elect_check` | bool | Enable ELECT (personalization) output |
-| `graph_check` | bool | Enable GRAPH (laser) output |
-| `server_check` | bool | Enable SERVER output |
-| `pin1_fix` / `puk1_fix` / `adm1_fix` … | bool | `true` = every SIM gets the fixed value above; `false` = unique random value per SIM |
 
 ### PATHS — output file locations
 
@@ -217,6 +227,57 @@ children on an unhandled exception — should call it explicitly:
 from gsm_data_generator import install_excepthook
 install_excepthook()
 ```
+
+Development
+-----------
+
+```bash
+# Editable install with the test tooling
+pip install -e .
+pip install pytest pytest-cov
+
+# Run the suite (the invocation CI uses)
+pytest --maxfail=1 --disable-warnings -v
+
+# A single module
+pytest tests/python/algorithm/test_encrypt.py -v
+
+# Coverage
+pytest --cov=gsm_data_generator --cov-report=term-missing
+```
+
+Formatting and typing are enforced in CI, so check them before pushing:
+
+```bash
+pip install black mypy pandas-stubs
+black gsm_data_generator/ tests/python/ verify.py setup.py
+mypy gsm_data_generator/
+```
+
+`pandas-stubs` is required for `mypy`: `mypy.ini` sets
+`ignore_missing_imports = False`, so an unstubbed `pandas` is a hard error.
+
+To build and check the distributions locally:
+
+```bash
+pip install build twine
+python -m build
+twine check dist/*
+```
+
+### Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull
+request, on pushes to `main`, and weekly — dependencies are unpinned, so the
+scheduled run surfaces upstream breakage without waiting for a PR.
+
+| Job | Checks |
+|---|---|
+| `format` | `black --check` |
+| `typecheck` | `mypy` with `pandas-stubs` |
+| `test` | Python 3.10–3.13 on Ubuntu, plus 3.11 on Windows and macOS; `pip check`, the test suite with a coverage floor, and `verify.py` |
+| `package` | Builds the sdist and wheel, validates metadata, installs the wheel into a clean environment and smoke-tests it |
+| `ci-ok` | Aggregate gate — use this single check for branch protection |
 
 Contribute
 ----------

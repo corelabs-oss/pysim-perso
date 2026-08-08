@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """GSM Data Generator — public API."""
+
 import multiprocessing
 import os
 import sys
@@ -80,6 +81,7 @@ def install_excepthook() -> None:
     never created. Applications that want the behaviour now opt in.
     """
     sys.excepthook = _wrap_excepthook(sys.excepthook)
+
 
 __all__ = [
     "__version__",

@@ -156,9 +156,7 @@ class DataFrameProcessor:
         prefix = start[:prefix_length]
         width = len(start) - prefix_length
         first = int(start[prefix_length:])
-        df[column] = [
-            f"{prefix}{n:0{width}d}" for n in range(first, first + len(df))
-        ]
+        df[column] = [f"{prefix}{n:0{width}d}" for n in range(first, first + len(df))]
 
     @staticmethod
     def sequence_bounds(

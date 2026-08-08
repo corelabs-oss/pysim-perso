@@ -65,6 +65,7 @@ _DATAGEN_EXCEPTIONS = [
 # Simple exceptions (pySim-derived)
 # ------------------------------------------------------------------ #
 
+
 @pytest.mark.parametrize("exc_class", _SIMPLE_EXCEPTIONS)
 def test_simple_exceptions_can_be_raised_and_caught(exc_class):
     with pytest.raises(exc_class):
@@ -87,6 +88,7 @@ def test_simple_exceptions_carry_message(exc_class):
 # ------------------------------------------------------------------ #
 # SwMatchError
 # ------------------------------------------------------------------ #
+
 
 def test_sw_match_error_str_without_rs():
     err = SwMatchError("9000", "9001")
@@ -126,6 +128,7 @@ def test_sw_match_error_can_be_caught_as_exception():
 # ------------------------------------------------------------------ #
 # DATAGEN error hierarchy
 # ------------------------------------------------------------------ #
+
 
 @pytest.mark.parametrize("exc_class", _DATAGEN_EXCEPTIONS)
 def test_datagen_exceptions_can_be_raised(exc_class):
