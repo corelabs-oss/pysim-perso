@@ -19,25 +19,48 @@ from threading import Lock
 
 
 class DataFrames:
-    """Singleton holding the shared input and output DataFrames."""
+    """Holds the input and output DataFrames for one generation run.
+
+    Instances are freely constructible so that each :class:`DataGenerationScript`
+    can own its own state. :meth:`get_instance` additionally exposes a
+    process-wide shared instance for callers that still expect one; that shared
+    instance is independent of any instance created directly.
+    """
 
     __instance = None
+    __lock = Lock()
 
     def __init__(self):
-        if DataFrames.__instance is not None:
-            raise RuntimeError("DataFrames is a singleton — use get_instance().")
-        DataFrames.__instance = self
         self.__INPUT_DF = pd.DataFrame()
         self.ELECT_DF = pd.DataFrame()
         self.GRAPH_DF = pd.DataFrame()
         self.SERVER_DF = pd.DataFrame()
         self.__KEYS: dict = {}
 
-    @staticmethod
-    def get_instance() -> "DataFrames":
-        if DataFrames.__instance is None:
-            DataFrames.__instance = DataFrames()
-        return DataFrames.__instance
+    @classmethod
+    def get_instance(cls) -> "DataFrames":
+        """Return the process-wide shared instance, creating it on first use.
+
+        The shared instance is always a :class:`Parameters`, matching the
+        historical behaviour in which constructing ``Parameters`` also
+        registered it as the ``DataFrames`` instance. Creating either class
+        directly no longer affects — or is affected by — this instance, so the
+        order in which the two accessors are first called no longer matters.
+        """
+        with DataFrames.__lock:
+            if DataFrames.__instance is None:
+                DataFrames.__instance = Parameters()
+            return DataFrames.__instance
+
+    @classmethod
+    def reset_shared_instance(cls) -> None:
+        """Discard the process-wide shared instance.
+
+        Intended for tests, which would otherwise leak parameter state between
+        cases.
+        """
+        with DataFrames.__lock:
+            DataFrames.__instance = None
 
     def set_input_df(self, value: pd.DataFrame) -> None:
         self.__INPUT_DF = value
@@ -53,16 +76,15 @@ class DataFrames:
 
 
 class Parameters(DataFrames):
-    """Thread-safe singleton holding all in-flight SIM card configuration parameters."""
+    """Holds all in-flight SIM card configuration parameters for one run.
 
-    __instance = None
-    __lock = Lock()
+    Construct one per :class:`DataGenerationScript`. :meth:`get_instance`
+    returns the process-wide shared instance and is kept for callers that
+    still rely on it, but a script no longer publishes its state there.
+    """
 
     def __init__(self):
         super().__init__()
-        if Parameters.__instance is not None:
-            raise RuntimeError("Parameters is a singleton — use get_instance().")
-        Parameters.__instance = self
 
         # SIM card parameters
         self.__ICCID: str = ""
@@ -110,10 +132,14 @@ class Parameters(DataFrames):
 
     @classmethod
     def get_instance(cls) -> "Parameters":
-        with cls.__lock:
-            if cls.__instance is None:
-                cls.__instance = Parameters()
-            return cls.__instance
+        """Return the process-wide shared instance.
+
+        Delegates to :meth:`DataFrames.get_instance` so both accessors always
+        yield the same object. Note that this is *not* the state a
+        :class:`DataGenerationScript` operates on — read ``script.params``
+        for that.
+        """
+        return DataFrames.get_instance()  # type: ignore[return-value]
 
     # ------------------------------------------------------------------ #
     # Separators
@@ -404,7 +430,10 @@ class Parameters(DataFrames):
         """Return True if `param` satisfies the length/format rule for `param_name`."""
         match param_name:
             case "ICCID":
-                return len(str(param)) in (18, 19, 20)
+                # 18-19 digits only: a 20-digit ICCID plus its Luhn digit
+                # overflows the 20-character EF_ICCID field and is silently
+                # truncated by the encoder.
+                return len(str(param)) in (18, 19)
             case "IMSI":
                 return len(str(param)) == 15
             case "PIN1" | "PIN2":
@@ -446,6 +475,53 @@ class Parameters(DataFrames):
             and self.is_valid(self.ELECT_DICT, "DICT")
             and self.is_valid(self.GRAPH_DICT, "DICT")
         )
+
+    def validate_params(self) -> list:
+        """Return a list of human-readable validation failures.
+
+        An empty list means every parameter passed. This differs from
+        :meth:`check_params` in two ways: it reports *which* parameters failed
+        rather than a single bool, and it only checks an output type's variable
+        dictionary when that output type is actually enabled.
+
+        :meth:`check_params` is left unchanged for backwards compatibility.
+        """
+        failures = []
+
+        checks = [
+            (self.IMSI, "IMSI"),
+            (self.ICCID, "ICCID"),
+            (self.DATA_SIZE, "SIZE"),
+            (self.PIN1, "PIN1"),
+            (self.PUK1, "PUK1"),
+            (self.PIN2, "PIN2"),
+            (self.PUK2, "PUK2"),
+            (self.ADM1, "ADM1"),
+            (self.ADM6, "ADM6"),
+            (self.OP, "OP"),
+            (self.K4, "K4"),
+        ]
+        for value, name in checks:
+            # is_valid() casts internally and can raise on empty/garbage input,
+            # which for validation purposes is just another failure.
+            try:
+                ok = self.is_valid(value, name)
+            except (TypeError, ValueError):
+                ok = False
+            if not ok:
+                failures.append(f"{name} has an invalid value or length: {value!r}")
+
+        for enabled, variables, name in (
+            (self.ELECT_CHECK, self.ELECT_DICT, "ELECT_DICT"),
+            (self.GRAPH_CHECK, self.GRAPH_DICT, "GRAPH_DICT"),
+            (self.SERVER_CHECK, self.SERVER_DICT, "SERVER_DICT"),
+        ):
+            if enabled and not self.is_valid(variables, "DICT"):
+                failures.append(
+                    f"{name} is empty but its output type is enabled"
+                )
+
+        return failures
 
     def get_all_params_dict(self) -> dict:
         return {
