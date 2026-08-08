@@ -23,6 +23,13 @@ from ..globals import DataFrames, Parameters
 from ..generator import DataGenerator
 from ..utils import copy_function, list_2_dict, DEFAULT_HEADER
 
+# An IMSI is MCC (always 3 digits) + MNC (2 or 3) + MSIN. The first 5 digits
+# are therefore structural under every numbering plan, so incrementing must
+# never carry into them — that would move the batch to a different operator.
+# This is a deliberately conservative bound: where the MNC is 3 digits (the
+# North American Numbering Plan) its final digit is not covered.
+IMSI_FIXED_PREFIX_LENGTH = 5
+
 
 class DataGenerationScript:
 
@@ -149,8 +156,13 @@ class DataGenerationScript:
         df = self.df_processor.generate_empty_dataframe(
             DEFAULT_HEADER, self.params.DATA_SIZE
         )
-        self.df_processor.initialize_column(df, "ICCID", self.params.ICCID)
-        self.df_processor.initialize_column(df, "IMSI", self.params.IMSI)
+        # Identifiers are sequenced as fixed-width digit strings so that
+        # leading zeros survive and a carry cannot reach the structural
+        # prefix. See DataFrameProcessor.initialize_identifier_column.
+        self.df_processor.initialize_identifier_column(df, "ICCID", self.params.ICCID)
+        self.df_processor.initialize_identifier_column(
+            df, "IMSI", self.params.IMSI, prefix_length=IMSI_FIXED_PREFIX_LENGTH
+        )
         self.df_processor.initialize_column(df, "OP", self.params.OP, increment=False)
         self.df_processor.initialize_column(df, "K4", self.params.K4, increment=False)
         return self.apply_functions(df)
@@ -193,7 +205,13 @@ class DataGenerationScript:
         headers, _, _, _, left_ranges, right_ranges = (
             self.data_processor.extract_parameter_info(input_dict)
         )
-        df = self.df_processor.add_duplicate_columns(df, 10, headers)
+        # Derived from the requested headers rather than hardcoded: a fixed
+        # ceiling of 10 made an 11th repetition of the same column fail with
+        # "['ICCID10'] not in index" instead of producing the column.
+        duplicate_limit = (
+            self.data_processor.max_duplicate_suffix(headers, df.columns) + 1
+        )
+        df = self.df_processor.add_duplicate_columns(df, duplicate_limit, headers)
         if clip:
             df = self.df_processor.clip_columns(df, left_ranges, right_ranges)
         return df

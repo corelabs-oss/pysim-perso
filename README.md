@@ -97,6 +97,25 @@ All string fields are character-set checked at load time: identifiers must be
 numeric, key material must be hexadecimal. Invalid values raise a Pydantic
 `ValidationError` naming the offending field instead of failing later inside
 the generation pipeline.
+
+### Identifier sequencing
+
+`imsi` and `iccid` are sequenced as fixed-width digit strings, not integers:
+
+- **Leading zeros are preserved.** A test-network IMSI such as
+  `001010000000001` stays 15 digits across the batch.
+- **The IMSI prefix is protected.** An IMSI is MCC (3 digits) + MNC (2 or 3) +
+  MSIN, so only the trailing 10 digits are incremented. A batch that would
+  carry into the first 5 digits is rejected rather than silently reassigning
+  the cards to a different operator — `410099999999998` with `size: 4` raises
+  instead of rolling over to `410100000000000`.
+- **ICCID is width-checked.** The whole value increments, but a batch that
+  would grow the ICCID past its configured length is rejected.
+
+> **Note:** the 5-digit protected prefix is a conservative bound that holds
+> under every numbering plan. Where the MNC is 3 digits (the North American
+> Numbering Plan) its final digit sits inside the incremented range and is not
+> covered; keep such batches well clear of the MSIN boundary.
 | `elect_check` | bool | Enable ELECT (personalization) output |
 | `graph_check` | bool | Enable GRAPH (laser) output |
 | `server_check` | bool | Enable SERVER output |
@@ -129,9 +148,9 @@ rejected with the list of valid names.
 Each entry must be exactly `[column, type, range]`, where:
 
 - the **key** is the laser print position and must be a non-negative integer
-  string (`"0"`, `"1"`, …). **Note:** entries are currently applied in the order
-  they appear in the JSON file, *not* in numeric key order — write them in
-  ascending order until this is fixed.
+  string (`"0"`, `"1"`, …). Entries are applied in ascending numeric key order,
+  independent of the order they appear in the JSON file, and `"10"` correctly
+  follows `"9"`.
 - the **range** must be `"<start>-<end>"` with `start <= end`. A reversed range
   (`"5-3"`) or an unparseable one (`"garbage"`) is rejected — previously these
   silently produced an empty field or the whole value respectively.
