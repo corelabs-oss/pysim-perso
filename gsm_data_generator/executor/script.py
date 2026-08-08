@@ -17,6 +17,7 @@
 import pandas as pd
 
 from ..algorithm import CryptoUtils, DependentDataGenerator
+from ..error import ConfigValidationError
 from ..processor import DataProcessing, DataFrameProcessor
 from ..globals import DataFrames, Parameters
 from ..generator import DataGenerator
@@ -70,6 +71,27 @@ class DataGenerationScript:
         self.params.PUK2_RAND = self.config_holder.DISP.puk2_fix
         self.params.ADM1_RAND = self.config_holder.DISP.adm1_fix
         self.params.ADM6_RAND = self.config_holder.DISP.adm6_fix
+
+    def run_prod_check(self) -> None:
+        """Validate all parameters when ``prod_check`` is enabled in the config.
+
+        Does nothing when ``prod_check`` is false, preserving the previous
+        behaviour for configs that opt out.
+
+        Raises
+        ------
+        ConfigValidationError
+            If any parameter fails validation. The message lists every failure.
+        """
+        if not getattr(self.config_holder.DISP, "prod_check", False):
+            return
+
+        failures = self.params.validate_params()
+        if failures:
+            raise ConfigValidationError(
+                "Parameter validation failed (prod_check is enabled):\n  - "
+                + "\n  - ".join(failures)
+            )
 
     def generate_eki(self, ki: str) -> str:
         return self.dep_data_generator.calculate_eki(self.params.K4, ki)
@@ -185,7 +207,14 @@ class DataGenerationScript:
             (result_dfs, keys_dict) where result_dfs maps output type
             ('ELECT', 'GRAPH', 'SERVER') to its DataFrame, and keys_dict
             contains {'k4': ..., 'op': ...}.
+
+        Raises
+        ------
+        ConfigValidationError
+            If ``prod_check`` is enabled and any parameter fails validation.
         """
+        self.run_prod_check()
+
         initial_df, keys_dict = self.generate_initial_data(True)
 
         data_types = {
