@@ -585,7 +585,7 @@ def test_data_generation_script_runs(params_dict, expected_bools, size):
 
     # Step 1: apply JSON params to global Parameters singleton
     script.json_to_global_params()
-    p = Parameters.get_instance()
+    p = script.params
 
     # sanity checks (fixed values)
     assert p.IMSI == "111111111121111"

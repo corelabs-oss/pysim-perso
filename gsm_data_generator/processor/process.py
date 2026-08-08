@@ -150,14 +150,43 @@ class DataFrameProcessor:
             If `start_value` is not numeric, `prefix_length` is out of range,
             or the requested row count overflows the incrementable suffix.
         """
+        start, _ = DataFrameProcessor.sequence_bounds(
+            start_value, len(df), prefix_length, label=column
+        )
+        prefix = start[:prefix_length]
+        width = len(start) - prefix_length
+        first = int(start[prefix_length:])
+        df[column] = [
+            f"{prefix}{n:0{width}d}" for n in range(first, first + len(df))
+        ]
+
+    @staticmethod
+    def sequence_bounds(
+        start_value: str,
+        count: int,
+        prefix_length: int = 0,
+        label: str = "identifier",
+    ) -> Tuple[str, str]:
+        """Return the (first, last) identifiers of a sequence.
+
+        Validates the same constraints as
+        :meth:`initialize_identifier_column`, so callers that only need the
+        range — such as the issuance ledger — do not have to materialise it.
+
+        Raises
+        ------
+        ValueError
+            If `start_value` is not numeric, `prefix_length` is out of range,
+            or `count` rows would overflow the incrementable suffix.
+        """
         start = str(start_value)
         if not start.isdigit():
             raise ValueError(
-                f"{column} must be a numeric identifier string, got {start!r}"
+                f"{label} must be a numeric identifier string, got {start!r}"
             )
         if not 0 <= prefix_length < len(start):
             raise ValueError(
-                f"{column} prefix_length must be within [0, {len(start)}), "
+                f"{label} prefix_length must be within [0, {len(start)}), "
                 f"got {prefix_length}"
             )
 
@@ -165,17 +194,17 @@ class DataFrameProcessor:
         suffix = start[prefix_length:]
         width = len(suffix)
         first = int(suffix)
-        last = first + len(df) - 1
+        last = first + max(count, 1) - 1
 
         if last >= 10**width:
             raise ValueError(
-                f"{column} sequence overflows its {width}-digit incrementable "
-                f"field: starting at {start} for {len(df)} rows would carry "
+                f"{label} sequence overflows its {width}-digit incrementable "
+                f"field: starting at {start} for {count} rows would carry "
                 f"into the fixed prefix {prefix!r}. "
                 f"Reduce size or lower the starting value."
             )
 
-        df[column] = [f"{prefix}{n:0{width}d}" for n in range(first, last + 1)]
+        return start, f"{prefix}{last:0{width}d}"
 
     @staticmethod
     def apply_function_to_column(

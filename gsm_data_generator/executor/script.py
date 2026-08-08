@@ -18,10 +18,12 @@ import pandas as pd
 
 from ..algorithm import CryptoUtils, DependentDataGenerator
 from ..error import ConfigValidationError
+from ..issuance import IssuanceLedger
 from ..processor import DataProcessing, DataFrameProcessor
 from ..globals import DataFrames, Parameters
 from ..generator import DataGenerator
 from ..utils import copy_function, list_2_dict, DEFAULT_HEADER
+from ..writer import OutputWriter
 
 # An IMSI is MCC (always 3 digits) + MNC (2 or 3) + MSIN. The first 5 digits
 # are therefore structural under every numbering plan, so incrementing must
@@ -33,15 +35,48 @@ IMSI_FIXED_PREFIX_LENGTH = 5
 
 class DataGenerationScript:
 
-    def __init__(self, config_holder):
+    def __init__(
+        self,
+        config_holder,
+        params=None,
+        data_generator=None,
+        ledger=None,
+    ):
+        """Create a generation run.
+
+        Parameters
+        ----------
+        config_holder
+            Validated configuration, from :func:`json_loader` or
+            :func:`json_loader_2_ConfigHolder`.
+        params
+            Parameter state to operate on. Defaults to a fresh
+            :class:`Parameters` owned by this script. Scripts previously shared
+            one process-wide instance, so the last ``json_to_global_params()``
+            call in a process silently won for every script — pass an explicit
+            instance only if you deliberately want shared state.
+        data_generator
+            Source of random SIM secrets. Defaults to :class:`DataGenerator`,
+            which draws from :mod:`secrets`. Injecting an alternative allows a
+            seeded, reproducible generator for testing; never use one to
+            produce cards for real networks.
+        ledger
+            :class:`IssuanceLedger` used by :meth:`write_outputs` to refuse
+            re-issuing identifiers. Defaults to one in the configured output
+            directory.
+        """
         self.config_holder = config_holder
-        self.params = Parameters.get_instance()
-        self.dataframes = DataFrames.get_instance()
+        self.params = params if params is not None else Parameters()
+        # Parameters extends DataFrames, so one object backs both roles.
+        self.dataframes = self.params
         self.crypto_utils = CryptoUtils()
-        self.data_generator = DataGenerator()
+        self.data_generator = (
+            data_generator if data_generator is not None else DataGenerator()
+        )
         self.data_processor = DataProcessing()
         self.df_processor = DataFrameProcessor()
         self.dep_data_generator = DependentDataGenerator()
+        self._ledger = ledger
 
     def json_to_global_params(self) -> None:
         """Load configuration values from the config holder into the Parameters singleton."""
@@ -256,6 +291,87 @@ class DataGenerationScript:
                     raise RuntimeError(f"Failed processing {data_type} data: {e}") from e
 
         return result_dfs, keys_dict
+
+    # ------------------------------------------------------------------ #
+    # Output
+    # ------------------------------------------------------------------ #
+
+    @property
+    def ledger(self) -> IssuanceLedger:
+        """Issuance ledger for this run, kept in the configured output dir."""
+        if self._ledger is None:
+            self._ledger = IssuanceLedger(self.config_holder.PATHS.OUTPUT_FILES_DIR)
+        return self._ledger
+
+    def issued_ranges(self) -> dict:
+        """Return the ICCID and IMSI ranges this configuration covers."""
+        size = int(self.params.DATA_SIZE)
+        iccid_start, iccid_end = self.df_processor.sequence_bounds(
+            self.params.ICCID, size, label="ICCID"
+        )
+        imsi_start, imsi_end = self.df_processor.sequence_bounds(
+            self.params.IMSI, size, IMSI_FIXED_PREFIX_LENGTH, label="IMSI"
+        )
+        return {
+            "iccid_start": iccid_start,
+            "iccid_end": iccid_end,
+            "imsi_start": imsi_start,
+            "imsi_end": imsi_end,
+            "size": size,
+        }
+
+    def write_outputs(
+        self,
+        result_dfs: dict,
+        check_issuance: bool = True,
+        include_header: bool = True,
+    ) -> dict:
+        """Write generated frames to the configured output directory.
+
+        This is the point at which a batch counts as *issued*, so it is also
+        where the issuance ledger is consulted and updated: the ledger is
+        checked before anything is written and recorded only once every file
+        has been written successfully. Generating frames in memory does not
+        touch the ledger.
+
+        Returns
+        -------
+        dict
+            Mapping of output type to the path written.
+
+        Raises
+        ------
+        IssuanceOverlapError
+            If `check_issuance` is set and these identifiers were issued before.
+        """
+        paths = self.config_holder.PATHS
+        ranges = self.issued_ranges()
+
+        if check_issuance:
+            self.ledger.check(
+                ranges["iccid_start"],
+                ranges["iccid_end"],
+                ranges["imsi_start"],
+                ranges["imsi_end"],
+            )
+
+        writer = OutputWriter(
+            output_dir=paths.OUTPUT_FILES_DIR,
+            file_name=paths.FILE_NAME,
+            laser_ext=paths.OUTPUT_FILES_LASER_EXT,
+            separators={
+                "ELECT": self.params.ELECT_SEP,
+                "GRAPH": self.params.GRAPH_SEP,
+                "SERVER": self.params.SERVER_SEP,
+            },
+            include_header=include_header,
+        )
+        written = writer.write(result_dfs)
+
+        if check_issuance:
+            self.ledger.record(**ranges)
+
+        return written
 
 
 __all__ = ["DataGenerationScript"]

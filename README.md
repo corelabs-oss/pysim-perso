@@ -65,7 +65,16 @@ result_dfs, keys = script.generate_all_data()
 
 elect_df = result_dfs["ELECT"]   # pandas DataFrame — one row per SIM
 print(elect_df.head())
+
+# Write the files and record the batch as issued
+written = script.write_outputs(result_dfs)
+print(written["ELECT"])          # <OUTPUT_FILES_DIR>/<FILE_NAME>.txt
 ```
+
+Each `DataGenerationScript` owns its own parameter state, so several
+configurations can be generated in one process without interfering. Read a
+run's state through `script.params`; `Parameters.get_instance()` still returns
+a process-wide instance but is no longer where a script keeps its state.
 
 **4. Verify your install works end-to-end**
 
@@ -126,8 +135,37 @@ the generation pipeline.
 | Field | Description |
 |---|---|
 | `FILE_NAME` | Base name for output files (no extension) |
-| `OUTPUT_FILES_DIR` | Directory where output files are written |
+| `OUTPUT_FILES_DIR` | Directory where output files and the issuance ledger are written; created if missing |
 | `OUTPUT_FILES_LASER_EXT` | Suffix for laser/graph output filename |
+
+`script.write_outputs(result_dfs)` writes one separator-delimited text file per
+enabled output:
+
+| Output | File |
+|---|---|
+| ELECT | `<FILE_NAME>.txt` |
+| SERVER | `<FILE_NAME>_server.txt` |
+| GRAPH | `<FILE_NAME>_<OUTPUT_FILES_LASER_EXT>.txt` |
+
+### Issuance ledger
+
+Re-running a configuration produces the **same** ICCID and IMSI sequences but
+**fresh** Ki values. Two cards would then carry the same ICCID with different
+keys and neither could be provisioned reliably.
+
+`write_outputs` therefore records each batch in `.issuance_ledger.json` inside
+`OUTPUT_FILES_DIR` and refuses a batch that overlaps one already issued:
+
+```
+IssuanceOverlapError: ICCID range 8991…000-8991…009 overlaps batch 1
+(8991…000-8991…009, issued 2026-08-08T09:14:22+00:00). Re-issuing would
+produce duplicate ICCIDs with different Ki values.
+```
+
+Advance the starting `iccid`/`imsi` to continue, or pass
+`write_outputs(..., check_issuance=False)` to override deliberately. A batch
+counts as issued when it is **written**, so generating frames in memory never
+consumes a range.
 
 ### PARAMETERS — output column selection
 
@@ -160,8 +198,25 @@ Features
 - Cryptographic SIM parameter generation: Ki, OPc, eKI, ACC, PIN/PUK, OTA keys
 - Operator-configurable via a single JSON file
 - Three output formats: ELECT (personalization), SERVER (provisioning), GRAPH (laser)
-- Pydantic-validated config with clear error messages on bad input
-- Thread-safe singleton state for use in GUI and pipeline contexts
+- Pydantic-validated config, rejecting malformed values at load time with the
+  offending field named
+- Structure-preserving identifier sequencing that refuses to carry into an
+  operator prefix
+- Issuance ledger that prevents the same ICCID range being issued twice
+- Per-run isolated state, so multiple configurations can be generated
+  concurrently in one process
+
+### Opt-in global behaviour
+
+Importing the library no longer replaces `sys.excepthook`. Applications that
+want the previous behaviour — suppressed backtraces for `DiagnosticError`
+unless `DATAGEN_BACKTRACE=1`, and termination of active multiprocessing
+children on an unhandled exception — should call it explicitly:
+
+```python
+from gsm_data_generator import install_excepthook
+install_excepthook()
+```
 
 Contribute
 ----------
