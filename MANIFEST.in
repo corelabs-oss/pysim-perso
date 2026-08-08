@@ -26,5 +26,3 @@ include settings.example.json
 
 exclude settings.json
 prune tests
-prune notebooks
-prune 3rdparty
