@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Structure-preserving identifier sequencing and duplicate-column sizing."""
+
 import pytest
 
 from gsm_data_generator.processor.process import DataFrameProcessor, DataProcessing
@@ -27,6 +28,7 @@ def _frame(rows):
 # ------------------------------------------------------------------ #
 # initialize_identifier_column — zero padding
 # ------------------------------------------------------------------ #
+
 
 def test_leading_zeros_are_preserved():
     # int() dropped these, shortening a 15-digit test-network IMSI to 13.
@@ -60,6 +62,7 @@ def test_carry_within_the_suffix_is_allowed():
 # ------------------------------------------------------------------ #
 # initialize_identifier_column — prefix protection
 # ------------------------------------------------------------------ #
+
 
 def test_prefix_is_held_constant():
     df = _frame(3)
@@ -102,6 +105,7 @@ def test_overflow_without_prefix_raises_on_width_growth():
 # initialize_identifier_column — input validation
 # ------------------------------------------------------------------ #
 
+
 @pytest.mark.parametrize("bad", ["41009207861599x", "", "12.5", "-123"])
 def test_non_numeric_start_value_raises(bad):
     df = _frame(2)
@@ -130,10 +134,9 @@ def test_initialize_column_still_returns_integers():
 # ordered_entries — laser positions sort numerically
 # ------------------------------------------------------------------ #
 
+
 def test_numeric_keys_are_sorted_by_value():
-    entries = DataProcessing.ordered_entries(
-        {"2": ["C"], "0": ["A"], "1": ["B"]}
-    )
+    entries = DataProcessing.ordered_entries({"2": ["C"], "0": ["A"], "1": ["B"]})
     assert [e[0] for e in entries] == ["A", "B", "C"]
 
 
@@ -142,7 +145,12 @@ def test_two_digit_keys_do_not_sort_lexicographically():
     param_dict = {str(i): [f"col{i}"] for i in [0, 1, 2, 9, 10, 11]}
     entries = DataProcessing.ordered_entries(param_dict)
     assert [e[0] for e in entries] == [
-        "col0", "col1", "col2", "col9", "col10", "col11",
+        "col0",
+        "col1",
+        "col2",
+        "col9",
+        "col10",
+        "col11",
     ]
 
 
@@ -171,8 +179,11 @@ def test_extract_parameter_info_applies_numeric_ordering():
 # max_duplicate_suffix — replaces the hardcoded ceiling of 10
 # ------------------------------------------------------------------ #
 
+
 def test_no_duplicates_needs_no_suffixes():
-    assert DataProcessing.max_duplicate_suffix(["ICCID", "IMSI"], ["ICCID", "IMSI"]) == 0
+    assert (
+        DataProcessing.max_duplicate_suffix(["ICCID", "IMSI"], ["ICCID", "IMSI"]) == 0
+    )
 
 
 def test_suffix_is_derived_from_headers():
@@ -203,6 +214,7 @@ def test_unrelated_header_is_ignored():
 # ------------------------------------------------------------------ #
 # generate_empty_dataframe
 # ------------------------------------------------------------------ #
+
 
 def test_empty_dataframe_keeps_columns_and_dtype():
     df = DataFrameProcessor.generate_empty_dataframe(["A", "B"], "3")

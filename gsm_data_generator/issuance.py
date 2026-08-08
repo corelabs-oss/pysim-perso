@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Persistent record of which identifier ranges have already been issued."""
+
 import json
 import os
 from datetime import datetime, timezone

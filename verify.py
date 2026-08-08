@@ -25,6 +25,7 @@ Usage
 
 Exit codes: 0 = all checks passed, 1 = one or more checks failed.
 """
+
 import sys
 import argparse
 from pathlib import Path
@@ -46,9 +47,17 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Verify gsm-data-generator works end-to-end.")
-    parser.add_argument("--config", default="settings.json", help="Path to settings JSON (default: settings.json)")
-    parser.add_argument("--no-pipeline", action="store_true", help="Skip the full pipeline check")
+    parser = argparse.ArgumentParser(
+        description="Verify gsm-data-generator works end-to-end."
+    )
+    parser.add_argument(
+        "--config",
+        default="settings.json",
+        help="Path to settings JSON (default: settings.json)",
+    )
+    parser.add_argument(
+        "--no-pipeline", action="store_true", help="Skip the full pipeline check"
+    )
     args = parser.parse_args()
 
     print("=" * 60)
@@ -71,7 +80,10 @@ def main() -> int:
             DataGenerationScript,
             json_loader,
         )
-        ok = check("gsm_data_generator", True, f"version {gsm_data_generator.__version__}")
+
+        ok = check(
+            "gsm_data_generator", True, f"version {gsm_data_generator.__version__}"
+        )
     except ImportError as exc:
         ok = check("gsm_data_generator", False, str(exc))
         failures += 1
@@ -84,31 +96,57 @@ def main() -> int:
     section("2/4  Random generators")
 
     ki = DataGenerator.generate_ki()
-    failures += 0 if check("Ki  (32 hex chars, uppercase)", len(ki) == 32 and ki == ki.upper(), ki) else 1
+    failures += (
+        0
+        if check(
+            "Ki  (32 hex chars, uppercase)", len(ki) == 32 and ki == ki.upper(), ki
+        )
+        else 1
+    )
 
     ota = DataGenerator.generate_otas()
-    failures += 0 if check("OTA (32 hex chars, uppercase)", len(ota) == 32 and ota == ota.upper(), ota) else 1
+    failures += (
+        0
+        if check(
+            "OTA (32 hex chars, uppercase)", len(ota) == 32 and ota == ota.upper(), ota
+        )
+        else 1
+    )
 
     k4_32 = DataGenerator.generate_k4(32)
-    failures += 0 if check("K4  (64 hex chars, length=32)", len(k4_32) == 64, k4_32[:16] + "...") else 1
+    failures += (
+        0
+        if check("K4  (64 hex chars, length=32)", len(k4_32) == 64, k4_32[:16] + "...")
+        else 1
+    )
 
     k4_64 = DataGenerator.generate_k4(64)
-    failures += 0 if check("K4  (128 hex chars, length=64)", len(k4_64) == 128, k4_64[:16] + "...") else 1
+    failures += (
+        0
+        if check(
+            "K4  (128 hex chars, length=64)", len(k4_64) == 128, k4_64[:16] + "..."
+        )
+        else 1
+    )
 
     pin = DataGenerator.generate_4_digit()
-    failures += 0 if check("PIN (4 digits)", len(pin) == 4 and pin.isdigit(), pin) else 1
+    failures += (
+        0 if check("PIN (4 digits)", len(pin) == 4 and pin.isdigit(), pin) else 1
+    )
 
     puk = DataGenerator.generate_8_digit()
-    failures += 0 if check("PUK (8 digits)", len(puk) == 8 and puk.isdigit(), puk) else 1
+    failures += (
+        0 if check("PUK (8 digits)", len(puk) == 8 and puk.isdigit(), puk) else 1
+    )
 
     # ------------------------------------------------------------------ #
     # 3. Cryptographic operations
     # ------------------------------------------------------------------ #
     section("3/4  Cryptographic operations")
 
-    op        = "00001111000022220000333300004444"
+    op = "00001111000022220000333300004444"
     transport = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    imsi      = "410092078615999"
+    imsi = "410092078615999"
 
     opc = DependentDataGenerator.calculate_opc(op, ki)
     failures += 0 if check("OPC (OPc = AES_Ki(OP) XOR OP)", len(opc) == 32, opc) else 1
@@ -117,23 +155,45 @@ def main() -> int:
     failures += 0 if check("EKI (AES-128 CBC encrypted Ki)", len(eki) == 32, eki) else 1
 
     acc = DependentDataGenerator.calculate_acc(imsi)
-    failures += 0 if check("ACC (bitmask from last IMSI digit)", len(acc) == 4, acc) else 1
+    failures += (
+        0 if check("ACC (bitmask from last IMSI digit)", len(acc) == 4, acc) else 1
+    )
 
     # Deterministic test vector (3GPP TS 35.206 example)
-    known_ki  = "465B5CE8B199B49FAA5F0A2EE238A6BC"
-    known_op  = "CDC202D5123E20F62B6D676AC72CB318"
+    known_ki = "465B5CE8B199B49FAA5F0A2EE238A6BC"
+    known_op = "CDC202D5123E20F62B6D676AC72CB318"
     known_opc = "CD63CB71954A9F4E48A5994E37A02BAF"
-    computed  = DependentDataGenerator.calculate_opc(known_op, known_ki)
-    failures += 0 if check("OPC test vector (3GPP TS 35.206)", computed == known_opc, computed) else 1
+    computed = DependentDataGenerator.calculate_opc(known_op, known_ki)
+    failures += (
+        0
+        if check("OPC test vector (3GPP TS 35.206)", computed == known_opc, computed)
+        else 1
+    )
 
     # Known XOR sanity
-    result = CryptoUtils.xor_str(b"\xFF\x00", b"\xFF\xFF")
-    failures += 0 if check("XOR sanity (0xFF^0xFF=0x00, 0x00^0xFF=0xFF)", result == b"\x00\xFF", str(result)) else 1
+    result = CryptoUtils.xor_str(b"\xff\x00", b"\xff\xff")
+    failures += (
+        0
+        if check(
+            "XOR sanity (0xFF^0xFF=0x00, 0x00^0xFF=0xFF)",
+            result == b"\x00\xff",
+            str(result),
+        )
+        else 1
+    )
 
     # Encoding round-trip
     encoded_pin = EncodingUtils.enc_pin("1234")
     decoded_pin = EncodingUtils.dec_pin(encoded_pin)
-    failures += 0 if check("PIN encode/decode round-trip", decoded_pin == "1234", f"{encoded_pin!r} -> {decoded_pin!r}") else 1
+    failures += (
+        0
+        if check(
+            "PIN encode/decode round-trip",
+            decoded_pin == "1234",
+            f"{encoded_pin!r} -> {decoded_pin!r}",
+        )
+        else 1
+    )
 
     # ------------------------------------------------------------------ #
     # 4. Full pipeline (settings.json)
@@ -146,7 +206,9 @@ def main() -> int:
         config_path = Path(args.config)
         if not config_path.exists():
             print(f"{SKIP}  {args.config} not found — skipping pipeline check")
-            print("       Supply a config file with --config or run from the repo root.")
+            print(
+                "       Supply a config file with --config or run from the repo root."
+            )
         else:
             try:
                 config = json_loader(str(config_path))
@@ -157,21 +219,40 @@ def main() -> int:
                 # DataGenerationScript owns its own Parameters, so
                 # Parameters.get_instance() is no longer where it lives.
                 validation_failures = script.params.validate_params()
-                failures += 0 if check(
-                    "Parameters validation",
-                    not validation_failures,
-                    "; ".join(validation_failures),
-                ) else 1
+                failures += (
+                    0
+                    if check(
+                        "Parameters validation",
+                        not validation_failures,
+                        "; ".join(validation_failures),
+                    )
+                    else 1
+                )
 
                 result_dfs, keys = script.generate_all_data()
                 failures += 0 if check("Pipeline completed without error", True) else 1
 
                 for name, df in result_dfs.items():
                     ok = not df.empty
-                    failures += 0 if check(f"  {name} DataFrame ({len(df)} rows × {len(df.columns)} cols)", ok) else 1
+                    failures += (
+                        0
+                        if check(
+                            f"  {name} DataFrame ({len(df)} rows × {len(df.columns)} cols)",
+                            ok,
+                        )
+                        else 1
+                    )
 
-                check("K4 present in keys", bool(keys.get("k4")), keys.get("k4", "")[:8] + "...")
-                check("OP present in keys", bool(keys.get("op")), keys.get("op", "")[:8] + "...")
+                check(
+                    "K4 present in keys",
+                    bool(keys.get("k4")),
+                    keys.get("k4", "")[:8] + "...",
+                )
+                check(
+                    "OP present in keys",
+                    bool(keys.get("op")),
+                    keys.get("op", "")[:8] + "...",
+                )
 
             except Exception as exc:
                 check("Pipeline", False, str(exc))
