@@ -28,11 +28,51 @@ class DataProcessing:
         return [item for item, count in collections.Counter(items).items() if count > 1]
 
     @staticmethod
+    def ordered_entries(param_dict: Dict[str, List[str]]) -> List[List[str]]:
+        """Return the entries of `param_dict` in laser-position order.
+
+        Keys of ``laser_variables`` are laser print positions, so "10" must
+        follow "9" rather than landing wherever JSON insertion order put it.
+        Sorting numerically also avoids the lexicographic ordering that would
+        otherwise place "10" between "1" and "2".
+
+        Falls back to insertion order when the keys are not all numeric, so
+        callers passing arbitrarily-keyed dictionaries are unaffected.
+        """
+        keys = list(param_dict.keys())
+        if keys and all(isinstance(k, str) and k.isdigit() for k in keys):
+            keys = sorted(keys, key=int)
+        return [param_dict[k] for k in keys]
+
+    @staticmethod
+    def max_duplicate_suffix(headers: List[str], columns) -> int:
+        """Highest numeric suffix needed to build `headers` out of `columns`.
+
+        :meth:`append_count_to_duplicates` renames repeated selections to
+        ``NAME``, ``NAME1``, ``NAME2`` ..., so the number of duplicate columns
+        that has to be materialised depends on the configuration rather than
+        on a fixed constant.
+        """
+        existing = set(columns)
+        highest = 0
+        for header in headers:
+            if header in existing:
+                continue
+            # Try the longest base first: "KIC11" is "KIC1" + "1", not
+            # "KIC" + "11", because KIC1 is itself a real column.
+            for split in range(len(header) - 1, 0, -1):
+                base, suffix = header[:split], header[split:]
+                if suffix.isdigit() and base in existing:
+                    highest = max(highest, int(suffix))
+                    break
+        return highest
+
+    @staticmethod
     def extract_parameter_info(
         param_dict: Dict[str, List[str]],
     ) -> Tuple[List[str], List[str], set, List[str], List[int], List[int]]:
         values, classes, ranges = [], [], []
-        for item in param_dict.values():
+        for item in DataProcessing.ordered_entries(param_dict):
             values.append(item[0])
             classes.append(item[1])
             ranges.append(item[2])
@@ -69,9 +109,11 @@ class DataProcessing:
 
 class DataFrameProcessor:
     @staticmethod
-    def generate_empty_dataframe(columns: List[str], rows: str) -> pd.DataFrame:
-        empty_data = [{col: 0 for col in columns} for _ in range(int(rows))]
-        return pd.DataFrame(empty_data)
+    def generate_empty_dataframe(columns: List[str], rows) -> pd.DataFrame:
+        # Built directly rather than from a list of per-row dicts: the latter
+        # materialised one dict per row (23 keys x N rows) before pandas ever
+        # saw the data, which dominated memory at large sizes.
+        return pd.DataFrame(0, index=pd.RangeIndex(int(rows)), columns=list(columns))
 
     @staticmethod
     def initialize_column(
@@ -81,6 +123,59 @@ class DataFrameProcessor:
             df[column] = range(int(start_value), int(start_value) + len(df))
         else:
             df[column] = str(start_value)
+
+    @staticmethod
+    def initialize_identifier_column(
+        df: pd.DataFrame,
+        column: str,
+        start_value: str,
+        prefix_length: int = 0,
+    ) -> None:
+        """Fill `column` with a fixed-width, zero-padded identifier sequence.
+
+        Unlike :meth:`initialize_column`, the identifier is treated as a digit
+        string rather than an integer, which matters in two ways:
+
+        * Leading zeros survive. ``int()`` drops them, so a test-network IMSI
+          of "001010000000001" became the 13-digit "1010000000001".
+        * Only the digits after `prefix_length` are incremented, so a carry
+          cannot propagate into a structural prefix. Incrementing an IMSI as a
+          whole number lets the MSIN overflow into the MNC — "410099999999999"
+          + 1 becomes "410100000000000", moving the batch to a different
+          operator.
+
+        Raises
+        ------
+        ValueError
+            If `start_value` is not numeric, `prefix_length` is out of range,
+            or the requested row count overflows the incrementable suffix.
+        """
+        start = str(start_value)
+        if not start.isdigit():
+            raise ValueError(
+                f"{column} must be a numeric identifier string, got {start!r}"
+            )
+        if not 0 <= prefix_length < len(start):
+            raise ValueError(
+                f"{column} prefix_length must be within [0, {len(start)}), "
+                f"got {prefix_length}"
+            )
+
+        prefix = start[:prefix_length]
+        suffix = start[prefix_length:]
+        width = len(suffix)
+        first = int(suffix)
+        last = first + len(df) - 1
+
+        if last >= 10**width:
+            raise ValueError(
+                f"{column} sequence overflows its {width}-digit incrementable "
+                f"field: starting at {start} for {len(df)} rows would carry "
+                f"into the fixed prefix {prefix!r}. "
+                f"Reduce size or lower the starting value."
+            )
+
+        df[column] = [f"{prefix}{n:0{width}d}" for n in range(first, last + 1)]
 
     @staticmethod
     def apply_function_to_column(
