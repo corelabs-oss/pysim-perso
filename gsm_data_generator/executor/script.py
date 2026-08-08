@@ -17,23 +17,66 @@
 import pandas as pd
 
 from ..algorithm import CryptoUtils, DependentDataGenerator
+from ..error import ConfigValidationError
+from ..issuance import IssuanceLedger
 from ..processor import DataProcessing, DataFrameProcessor
 from ..globals import DataFrames, Parameters
 from ..generator import DataGenerator
 from ..utils import copy_function, list_2_dict, DEFAULT_HEADER
+from ..writer import OutputWriter
+
+# An IMSI is MCC (always 3 digits) + MNC (2 or 3) + MSIN. The first 5 digits
+# are therefore structural under every numbering plan, so incrementing must
+# never carry into them — that would move the batch to a different operator.
+# This is a deliberately conservative bound: where the MNC is 3 digits (the
+# North American Numbering Plan) its final digit is not covered.
+IMSI_FIXED_PREFIX_LENGTH = 5
 
 
 class DataGenerationScript:
 
-    def __init__(self, config_holder):
+    def __init__(
+        self,
+        config_holder,
+        params=None,
+        data_generator=None,
+        ledger=None,
+    ):
+        """Create a generation run.
+
+        Parameters
+        ----------
+        config_holder
+            Validated configuration, from :func:`json_loader` or
+            :func:`json_loader_2_ConfigHolder`.
+        params
+            Parameter state to operate on. Defaults to a fresh
+            :class:`Parameters` owned by this script. Scripts previously shared
+            one process-wide instance, so the last ``json_to_global_params()``
+            call in a process silently won for every script — pass an explicit
+            instance only if you deliberately want shared state.
+        data_generator
+            Source of random SIM secrets. Defaults to :class:`DataGenerator`,
+            which draws from :mod:`secrets`. Injecting an alternative allows a
+            seeded, reproducible generator for testing; never use one to
+            produce cards for real networks.
+        ledger
+            :class:`IssuanceLedger` used by :meth:`write_outputs` to refuse
+            re-issuing identifiers. Defaults to one in the configured output
+            directory.
+        """
         self.config_holder = config_holder
-        self.params = Parameters.get_instance()
-        self.dataframes = DataFrames.get_instance()
+        self.params = params if params is not None else Parameters()
+        # Parameters extends DataFrames, so one object backs both roles.
+        self.dataframes = self.params
         self.crypto_utils = CryptoUtils()
-        self.data_generator = DataGenerator()
+        self.data_generator = (
+            data_generator if data_generator is not None else DataGenerator()
+        )
         self.data_processor = DataProcessing()
         self.df_processor = DataFrameProcessor()
         self.dep_data_generator = DependentDataGenerator()
+        self._ledger = ledger
 
     def json_to_global_params(self) -> None:
         """Load configuration values from the config holder into the Parameters singleton."""
@@ -70,6 +113,27 @@ class DataGenerationScript:
         self.params.PUK2_RAND = self.config_holder.DISP.puk2_fix
         self.params.ADM1_RAND = self.config_holder.DISP.adm1_fix
         self.params.ADM6_RAND = self.config_holder.DISP.adm6_fix
+
+    def run_prod_check(self) -> None:
+        """Validate all parameters when ``prod_check`` is enabled in the config.
+
+        Does nothing when ``prod_check`` is false, preserving the previous
+        behaviour for configs that opt out.
+
+        Raises
+        ------
+        ConfigValidationError
+            If any parameter fails validation. The message lists every failure.
+        """
+        if not getattr(self.config_holder.DISP, "prod_check", False):
+            return
+
+        failures = self.params.validate_params()
+        if failures:
+            raise ConfigValidationError(
+                "Parameter validation failed (prod_check is enabled):\n  - "
+                + "\n  - ".join(failures)
+            )
 
     def generate_eki(self, ki: str) -> str:
         return self.dep_data_generator.calculate_eki(self.params.K4, ki)
@@ -127,8 +191,13 @@ class DataGenerationScript:
         df = self.df_processor.generate_empty_dataframe(
             DEFAULT_HEADER, self.params.DATA_SIZE
         )
-        self.df_processor.initialize_column(df, "ICCID", self.params.ICCID)
-        self.df_processor.initialize_column(df, "IMSI", self.params.IMSI)
+        # Identifiers are sequenced as fixed-width digit strings so that
+        # leading zeros survive and a carry cannot reach the structural
+        # prefix. See DataFrameProcessor.initialize_identifier_column.
+        self.df_processor.initialize_identifier_column(df, "ICCID", self.params.ICCID)
+        self.df_processor.initialize_identifier_column(
+            df, "IMSI", self.params.IMSI, prefix_length=IMSI_FIXED_PREFIX_LENGTH
+        )
         self.df_processor.initialize_column(df, "OP", self.params.OP, increment=False)
         self.df_processor.initialize_column(df, "K4", self.params.K4, increment=False)
         return self.apply_functions(df)
@@ -149,12 +218,18 @@ class DataGenerationScript:
                 k4 = self.params.K4
                 op = self.params.OP
                 if not k4 or not isinstance(k4, str):
-                    raise ValueError("Invalid value for K4: must be a non-empty string.")
+                    raise ValueError(
+                        "Invalid value for K4: must be a non-empty string."
+                    )
                 if not op or not isinstance(op, str):
-                    raise ValueError("Invalid value for OP: must be a non-empty string.")
+                    raise ValueError(
+                        "Invalid value for OP: must be a non-empty string."
+                    )
                 return demo_data, {"k4": k4, "op": op}
             else:
-                raise NotImplementedError("Non-demo data generation is not yet implemented.")
+                raise NotImplementedError(
+                    "Non-demo data generation is not yet implemented."
+                )
         except Exception as e:
             raise RuntimeError(f"Error in generate_initial_data: {e}") from e
 
@@ -171,7 +246,13 @@ class DataGenerationScript:
         headers, _, _, _, left_ranges, right_ranges = (
             self.data_processor.extract_parameter_info(input_dict)
         )
-        df = self.df_processor.add_duplicate_columns(df, 10, headers)
+        # Derived from the requested headers rather than hardcoded: a fixed
+        # ceiling of 10 made an 11th repetition of the same column fail with
+        # "['ICCID10'] not in index" instead of producing the column.
+        duplicate_limit = (
+            self.data_processor.max_duplicate_suffix(headers, df.columns) + 1
+        )
+        df = self.df_processor.add_duplicate_columns(df, duplicate_limit, headers)
         if clip:
             df = self.df_processor.clip_columns(df, left_ranges, right_ranges)
         return df
@@ -185,13 +266,20 @@ class DataGenerationScript:
             (result_dfs, keys_dict) where result_dfs maps output type
             ('ELECT', 'GRAPH', 'SERVER') to its DataFrame, and keys_dict
             contains {'k4': ..., 'op': ...}.
+
+        Raises
+        ------
+        ConfigValidationError
+            If ``prod_check`` is enabled and any parameter fails validation.
         """
+        self.run_prod_check()
+
         initial_df, keys_dict = self.generate_initial_data(True)
 
         data_types = {
             "SERVER": (self.params.SERVER_CHECK, self.params.SERVER_DICT, False, False),
-            "GRAPH":  (self.params.GRAPH_CHECK,  self.params.GRAPH_DICT,  True,  False),
-            "ELECT":  (self.params.ELECT_CHECK,  self.params.ELECT_DICT,  False, True),
+            "GRAPH": (self.params.GRAPH_CHECK, self.params.GRAPH_DICT, True, False),
+            "ELECT": (self.params.ELECT_CHECK, self.params.ELECT_DICT, False, True),
         }
 
         result_dfs = {}
@@ -206,9 +294,92 @@ class DataGenerationScript:
                         dict_data, initial_df, clip, encoding
                     )
                 except Exception as e:
-                    raise RuntimeError(f"Failed processing {data_type} data: {e}") from e
+                    raise RuntimeError(
+                        f"Failed processing {data_type} data: {e}"
+                    ) from e
 
         return result_dfs, keys_dict
+
+    # ------------------------------------------------------------------ #
+    # Output
+    # ------------------------------------------------------------------ #
+
+    @property
+    def ledger(self) -> IssuanceLedger:
+        """Issuance ledger for this run, kept in the configured output dir."""
+        if self._ledger is None:
+            self._ledger = IssuanceLedger(self.config_holder.PATHS.OUTPUT_FILES_DIR)
+        return self._ledger
+
+    def issued_ranges(self) -> dict:
+        """Return the ICCID and IMSI ranges this configuration covers."""
+        size = int(self.params.DATA_SIZE)
+        iccid_start, iccid_end = self.df_processor.sequence_bounds(
+            self.params.ICCID, size, label="ICCID"
+        )
+        imsi_start, imsi_end = self.df_processor.sequence_bounds(
+            self.params.IMSI, size, IMSI_FIXED_PREFIX_LENGTH, label="IMSI"
+        )
+        return {
+            "iccid_start": iccid_start,
+            "iccid_end": iccid_end,
+            "imsi_start": imsi_start,
+            "imsi_end": imsi_end,
+            "size": size,
+        }
+
+    def write_outputs(
+        self,
+        result_dfs: dict,
+        check_issuance: bool = True,
+        include_header: bool = True,
+    ) -> dict:
+        """Write generated frames to the configured output directory.
+
+        This is the point at which a batch counts as *issued*, so it is also
+        where the issuance ledger is consulted and updated: the ledger is
+        checked before anything is written and recorded only once every file
+        has been written successfully. Generating frames in memory does not
+        touch the ledger.
+
+        Returns
+        -------
+        dict
+            Mapping of output type to the path written.
+
+        Raises
+        ------
+        IssuanceOverlapError
+            If `check_issuance` is set and these identifiers were issued before.
+        """
+        paths = self.config_holder.PATHS
+        ranges = self.issued_ranges()
+
+        if check_issuance:
+            self.ledger.check(
+                ranges["iccid_start"],
+                ranges["iccid_end"],
+                ranges["imsi_start"],
+                ranges["imsi_end"],
+            )
+
+        writer = OutputWriter(
+            output_dir=paths.OUTPUT_FILES_DIR,
+            file_name=paths.FILE_NAME,
+            laser_ext=paths.OUTPUT_FILES_LASER_EXT,
+            separators={
+                "ELECT": self.params.ELECT_SEP,
+                "GRAPH": self.params.GRAPH_SEP,
+                "SERVER": self.params.SERVER_SEP,
+            },
+            include_header=include_header,
+        )
+        written = writer.write(result_dfs)
+
+        if check_issuance:
+            self.ledger.record(**ranges)
+
+        return written
 
 
 __all__ = ["DataGenerationScript"]

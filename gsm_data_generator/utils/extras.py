@@ -1,6 +1,5 @@
 import json
 
-
 # TO DO it using context maneger : use magic methods etc
 # Create class this
 
@@ -20,7 +19,7 @@ import json
 
 def read_json(file_path: str):
     try:
-        with open(file_path, "r") as json_file:
+        with open(file_path, "r", encoding="utf-8") as json_file:
             data = json.load(json_file)
         return dict(data)
     except FileNotFoundError:
