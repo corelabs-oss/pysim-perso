@@ -41,8 +41,6 @@ from gsm_data_generator.parser.utils import (
     ConfigHolder,
 )
 
-import gsm_data_generator.testing
-
 
 def _should_print_backtrace() -> bool:
     in_pytest = "PYTEST_CURRENT_TEST" in os.environ

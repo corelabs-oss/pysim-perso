@@ -1,6 +1,0 @@
-[submodule "3rdparty/_kiopcgenerator"]
-	path = 3rdparty/_kiopcgenerator
-	url = https://github.com/iotconnectivity/kiopcgenerator.git
-[submodule "3rdparty/kiopcgenerator"]
-	path = 3rdparty/kiopcgenerator
-	url = https://github.com/iotconnectivity/kiopcgenerator.git
