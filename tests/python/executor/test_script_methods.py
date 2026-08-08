@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for individual DataGenerationScript methods."""
+
 import pytest
 
 from gsm_data_generator.executor.script import DataGenerationScript
@@ -56,10 +57,26 @@ _BASE_CONFIG = {
     "PARAMETERS": {
         "server_variables": ["IMSI", "EKI"],
         "data_variables": [
-            "IMSI", "ICCID", "PIN1", "PUK1", "PIN2", "PUK2",
-            "ADM1", "ADM6", "KI", "OPC", "ACC",
-            "KIC1", "KID1", "KIK1", "KIC2", "KID2", "KIK2",
-            "KIC3", "KID3", "KIK3",
+            "IMSI",
+            "ICCID",
+            "PIN1",
+            "PUK1",
+            "PIN2",
+            "PUK2",
+            "ADM1",
+            "ADM6",
+            "KI",
+            "OPC",
+            "ACC",
+            "KIC1",
+            "KID1",
+            "KIK1",
+            "KIC2",
+            "KID2",
+            "KIK2",
+            "KIC3",
+            "KID3",
+            "KIK3",
         ],
         "laser_variables": {
             "0": ["ICCID", "Normal", "0-20"],
@@ -75,11 +92,11 @@ _BASE_CONFIG = {
 @pytest.fixture(autouse=True)
 def reset_singletons():
     """Reset both singletons before every test so state doesn't leak."""
-    Parameters._Parameters__instance = None   # type: ignore[attr-defined]
-    DataFrames._DataFrames__instance = None    # type: ignore[attr-defined]
+    Parameters._Parameters__instance = None  # type: ignore[attr-defined]
+    DataFrames._DataFrames__instance = None  # type: ignore[attr-defined]
     yield
-    Parameters._Parameters__instance = None   # type: ignore[attr-defined]
-    DataFrames._DataFrames__instance = None    # type: ignore[attr-defined]
+    Parameters._Parameters__instance = None  # type: ignore[attr-defined]
+    DataFrames._DataFrames__instance = None  # type: ignore[attr-defined]
 
 
 @pytest.fixture
@@ -93,6 +110,7 @@ def script():
 # ------------------------------------------------------------------ #
 # json_to_global_params
 # ------------------------------------------------------------------ #
+
 
 def test_json_to_global_params_sets_imsi(script):
     p = script.params
@@ -127,6 +145,7 @@ def test_json_to_global_params_sets_rand_flags(script):
 # ------------------------------------------------------------------ #
 # generate_pin — fixed vs. random branching
 # ------------------------------------------------------------------ #
+
 
 def test_generate_pin_returns_fixed_value_when_rand_true(script):
     p = script.params
@@ -164,6 +183,7 @@ def test_generate_pin2_fixed(script):
 # generate_puk — fixed vs. random branching
 # ------------------------------------------------------------------ #
 
+
 def test_generate_puk_returns_fixed_value_when_rand_true(script):
     p = script.params
     p.PUK1 = "87654321"
@@ -190,6 +210,7 @@ def test_generate_puk2_fixed(script):
 # generate_adm — fixed vs. random branching
 # ------------------------------------------------------------------ #
 
+
 def test_generate_adm_returns_fixed_value_when_rand_true(script):
     p = script.params
     p.ADM1 = "ABCD1234"
@@ -215,6 +236,7 @@ def test_generate_adm6_fixed(script):
 # ------------------------------------------------------------------ #
 # generate_eki / generate_opc
 # ------------------------------------------------------------------ #
+
 
 def test_generate_eki_returns_32_char_uppercase_hex(script):
     ki = "A" * 32
@@ -250,6 +272,7 @@ def test_generate_eki_differs_for_different_ki(script):
 # generate_initial_data
 # ------------------------------------------------------------------ #
 
+
 def test_generate_initial_data_demo_returns_df_and_keys(script):
     df, keys = script.generate_initial_data(is_demo=True)
     assert not df.empty
@@ -272,6 +295,7 @@ def test_generate_initial_data_non_demo_raises_runtime_error(script):
 # ------------------------------------------------------------------ #
 # generate_all_data — error cases
 # ------------------------------------------------------------------ #
+
 
 def test_generate_all_data_raises_when_enabled_dict_is_empty(script):
     p = script.params

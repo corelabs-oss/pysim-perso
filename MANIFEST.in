@@ -14,23 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Library support utilities."""
 
-import sys
-import platform
+# setup.py imports this at build time to compute install_requires, so the
+# sdist is unbuildable without it: building a wheel from the sdist failed
+# with "ModuleNotFoundError: No module named 'gen_requirements'".
+include gen_requirements.py
 
-import gsm_data_generator
+include README.md
+include LICENSE
+include settings.example.json
 
-
-def describe() -> None:
-    """Print library version and Python environment information."""
-    lines = [
-        f"gsm-data-generator version : {gsm_data_generator.__version__}",
-        f"Python version             : {sys.version.split()[0]}",
-        f"Platform                   : {platform.platform()}",
-        f"Architecture               : {platform.machine()}",
-    ]
-    print("\n".join(lines))
-
-
-__all__ = ["describe"]
+exclude settings.json
+prune tests
+prune notebooks
+prune 3rdparty

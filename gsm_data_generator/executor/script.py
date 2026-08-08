@@ -218,12 +218,18 @@ class DataGenerationScript:
                 k4 = self.params.K4
                 op = self.params.OP
                 if not k4 or not isinstance(k4, str):
-                    raise ValueError("Invalid value for K4: must be a non-empty string.")
+                    raise ValueError(
+                        "Invalid value for K4: must be a non-empty string."
+                    )
                 if not op or not isinstance(op, str):
-                    raise ValueError("Invalid value for OP: must be a non-empty string.")
+                    raise ValueError(
+                        "Invalid value for OP: must be a non-empty string."
+                    )
                 return demo_data, {"k4": k4, "op": op}
             else:
-                raise NotImplementedError("Non-demo data generation is not yet implemented.")
+                raise NotImplementedError(
+                    "Non-demo data generation is not yet implemented."
+                )
         except Exception as e:
             raise RuntimeError(f"Error in generate_initial_data: {e}") from e
 
@@ -272,8 +278,8 @@ class DataGenerationScript:
 
         data_types = {
             "SERVER": (self.params.SERVER_CHECK, self.params.SERVER_DICT, False, False),
-            "GRAPH":  (self.params.GRAPH_CHECK,  self.params.GRAPH_DICT,  True,  False),
-            "ELECT":  (self.params.ELECT_CHECK,  self.params.ELECT_DICT,  False, True),
+            "GRAPH": (self.params.GRAPH_CHECK, self.params.GRAPH_DICT, True, False),
+            "ELECT": (self.params.ELECT_CHECK, self.params.ELECT_DICT, False, True),
         }
 
         result_dfs = {}
@@ -288,7 +294,9 @@ class DataGenerationScript:
                         dict_data, initial_df, clip, encoding
                     )
                 except Exception as e:
-                    raise RuntimeError(f"Failed processing {data_type} data: {e}") from e
+                    raise RuntimeError(
+                        f"Failed processing {data_type} data: {e}"
+                    ) from e
 
         return result_dfs, keys_dict
 

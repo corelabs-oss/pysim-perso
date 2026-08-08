@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Each DataGenerationScript owns its own parameter state."""
+
 import copy
 
 import pytest
@@ -26,19 +27,34 @@ from gsm_data_generator.parser.utils import json_loader_2_ConfigHolder
 
 _BASE = {
     "DISP": {
-        "elect_data_sep": ",", "server_data_sep": ",", "graph_data_sep": ",",
-        "K4": "A" * 32, "op": "A" * 32,
-        "imsi": "111111111121111", "iccid": "111111111121221111",
-        "pin1": "1111", "puk1": "11111111",
-        "pin2": "1111", "puk2": "11111111",
-        "adm1": "11111111", "adm6": "11111111",
-        "size": 2, "prod_check": True,
-        "elect_check": False, "graph_check": False, "server_check": True,
-        "pin1_fix": True, "puk1_fix": True, "pin2_fix": True, "puk2_fix": True,
-        "adm1_fix": False, "adm6_fix": False,
+        "elect_data_sep": ",",
+        "server_data_sep": ",",
+        "graph_data_sep": ",",
+        "K4": "A" * 32,
+        "op": "A" * 32,
+        "imsi": "111111111121111",
+        "iccid": "111111111121221111",
+        "pin1": "1111",
+        "puk1": "11111111",
+        "pin2": "1111",
+        "puk2": "11111111",
+        "adm1": "11111111",
+        "adm6": "11111111",
+        "size": 2,
+        "prod_check": True,
+        "elect_check": False,
+        "graph_check": False,
+        "server_check": True,
+        "pin1_fix": True,
+        "puk1_fix": True,
+        "pin2_fix": True,
+        "puk2_fix": True,
+        "adm1_fix": False,
+        "adm6_fix": False,
     },
     "PATHS": {
-        "FILE_NAME": "f", "OUTPUT_FILES_DIR": "out",
+        "FILE_NAME": "f",
+        "OUTPUT_FILES_DIR": "out",
         "OUTPUT_FILES_LASER_EXT": "laser",
     },
     "PARAMETERS": {
@@ -66,9 +82,12 @@ def _script(config, **kwargs):
 # Cross-config contamination
 # ------------------------------------------------------------------ #
 
+
 def test_two_scripts_do_not_share_parameter_state():
-    a = copy.deepcopy(_BASE); a["DISP"]["imsi"] = "111111111111111"
-    b = copy.deepcopy(_BASE); b["DISP"]["imsi"] = "222222222222222"
+    a = copy.deepcopy(_BASE)
+    a["DISP"]["imsi"] = "111111111111111"
+    b = copy.deepcopy(_BASE)
+    b["DISP"]["imsi"] = "222222222222222"
     script_a, script_b = _script(a), _script(b)
     assert script_a.params.IMSI == "111111111111111"
     assert script_b.params.IMSI == "222222222222222"
@@ -78,8 +97,10 @@ def test_two_scripts_do_not_share_parameter_state():
 def test_later_script_does_not_change_earlier_output():
     # Previously the last json_to_global_params() call in the process won,
     # so script_a generated script_b's IMSI range.
-    a = copy.deepcopy(_BASE); a["DISP"]["imsi"] = "111111111111111"
-    b = copy.deepcopy(_BASE); b["DISP"]["imsi"] = "222222222222222"
+    a = copy.deepcopy(_BASE)
+    a["DISP"]["imsi"] = "111111111111111"
+    b = copy.deepcopy(_BASE)
+    b["DISP"]["imsi"] = "222222222222222"
     script_a = _script(a)
     _script(b)  # loaded after script_a
     result, _ = script_a.generate_all_data()
@@ -109,6 +130,7 @@ def test_dataframes_role_is_backed_by_the_same_object():
 # ------------------------------------------------------------------ #
 # Shared-instance accessors
 # ------------------------------------------------------------------ #
+
 
 def test_dataframes_before_parameters_does_not_raise():
     # Creating DataFrames first used to poison Parameters.get_instance()
@@ -145,6 +167,7 @@ def test_reset_shared_instance_creates_a_fresh_one():
 # ------------------------------------------------------------------ #
 # Generator injection
 # ------------------------------------------------------------------ #
+
 
 class _FixedGenerator:
     """Deterministic stand-in; never acceptable for real cards."""

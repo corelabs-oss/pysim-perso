@@ -14,23 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Library support utilities."""
-
-import sys
-import platform
-
-import gsm_data_generator
-
-
-def describe() -> None:
-    """Print library version and Python environment information."""
-    lines = [
-        f"gsm-data-generator version : {gsm_data_generator.__version__}",
-        f"Python version             : {sys.version.split()[0]}",
-        f"Platform                   : {platform.platform()}",
-        f"Architecture               : {platform.machine()}",
-    ]
-    print("\n".join(lines))
-
-
-__all__ = ["describe"]
+version: 2
+updates:
+  # Action versions are pinned by major tag; this keeps them current and is
+  # the main defence against a stale, unmaintained action in the pipeline.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"
+    labels:
+      - dependencies

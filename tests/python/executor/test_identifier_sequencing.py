@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """End-to-end behaviour of identifier sequencing and laser column assembly."""
+
 import copy
 
 import pytest
@@ -83,6 +84,7 @@ def run(config):
 # IMSI structure is preserved through the pipeline
 # ------------------------------------------------------------------ #
 
+
 def test_imsi_keeps_full_width_and_leading_zeros():
     cfg = copy.deepcopy(_BASE)
     cfg["DISP"]["imsi"] = "001010000000001"  # MCC 001, the test-network code
@@ -145,6 +147,7 @@ def test_encoded_imsi_round_trips_through_elect():
 # ------------------------------------------------------------------ #
 # Laser column assembly
 # ------------------------------------------------------------------ #
+
 
 def test_laser_positions_applied_in_numeric_key_order():
     cfg = copy.deepcopy(_BASE)

@@ -19,6 +19,7 @@
 The PATHS and separator settings have always been part of the configuration
 schema; this module is what finally consumes them.
 """
+
 from pathlib import Path
 from typing import Dict
 
