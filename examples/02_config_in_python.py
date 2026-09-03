@@ -26,11 +26,11 @@ Run:
 
 import tempfile
 
-from gsm_data_generator import (
+from pysim_perso import (
     DataGenerationScript,
     json_loader_2_ConfigHolder,
 )
-from gsm_data_generator.error import DATAGENError
+from pysim_perso.error import DATAGENError
 
 
 def build_config(output_dir: str, size: int) -> dict:

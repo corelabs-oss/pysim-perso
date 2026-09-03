@@ -23,7 +23,7 @@ Run:
 import tempfile
 from pathlib import Path
 
-from gsm_data_generator import DataGenerationScript, json_loader
+from pysim_perso import DataGenerationScript, json_loader
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

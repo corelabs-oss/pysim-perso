@@ -27,8 +27,8 @@ Run:
 
 import tempfile
 
-from gsm_data_generator import DataGenerationScript, json_loader_2_ConfigHolder
-from gsm_data_generator.error import IssuanceOverlapError
+from pysim_perso import DataGenerationScript, json_loader_2_ConfigHolder
+from pysim_perso.error import IssuanceOverlapError
 
 BASE = {
     "DISP": {

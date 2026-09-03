@@ -17,9 +17,9 @@
 import pandas as pd
 import pytest
 
-from gsm_data_generator.processor.process import DataFrameProcessor
-from gsm_data_generator.algorithm.encode import EncodingUtils
-from gsm_data_generator.transform.transform import DataTransform
+from pysim_perso.processor.process import DataFrameProcessor
+from pysim_perso.algorithm.encode import EncodingUtils
+from pysim_perso.transform.transform import DataTransform
 
 COLS = ["ICCID", "IMSI", "PIN1", "PUK1"]
 

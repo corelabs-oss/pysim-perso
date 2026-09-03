@@ -3,7 +3,7 @@ import json
 import tempfile
 import os
 import pytest
-from gsm_data_generator.utils import read_json, copy_function
+from pysim_perso.utils import read_json, copy_function
 
 
 def test_read_json_valid():

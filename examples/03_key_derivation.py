@@ -24,7 +24,7 @@ Run:
     python examples/03_key_derivation.py
 """
 
-from gsm_data_generator import CryptoUtils, DataGenerator, DependentDataGenerator
+from pysim_perso import CryptoUtils, DataGenerator, DependentDataGenerator
 
 
 def main() -> None:

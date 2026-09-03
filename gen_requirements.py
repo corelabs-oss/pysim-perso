@@ -59,11 +59,11 @@ RequirementsByPieceType = typing.List[
 # Maps named DATAGEN piece (see description above) to a list of names of Python packages. Please use
 # alphabetical order for each package list, and do not add version constraints here!
 REQUIREMENTS_BY_PIECE: RequirementsByPieceType = [
-    # Base requirements needed to install gsm-data-generator.
+    # Base requirements needed to install pysim-perso.
     (
         "core",
         (
-            "Base requirements needed to install gsm-data-generator",
+            "Base requirements needed to install pysim-perso",
             [
                 "cloudpickle",
                 "docutils",
@@ -112,9 +112,9 @@ REQUIREMENTS_BY_PIECE: RequirementsByPieceType = [
     # ),
     #
     # (
-    #     "gsm-data-generator-c",
+    #     "pysim-perso-c",
     #     (
-    #         "Requirements for the gsm-data-generator-c command-line tool",
+    #         "Requirements for the pysim-perso-c command-line tool",
     #         [
     #             "ethos-u-vela",
     #             "future",  # Hidden dependency of torch.

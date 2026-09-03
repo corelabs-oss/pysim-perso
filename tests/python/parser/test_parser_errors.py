@@ -20,7 +20,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from gsm_data_generator.parser.utils import (
+from pysim_perso.parser.utils import (
     ConfigHolder,
     json_loader,
     json_loader_2_ConfigHolder,

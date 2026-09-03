@@ -24,11 +24,11 @@ import copy
 
 import pytest
 
-from gsm_data_generator import DATAGENError
-from gsm_data_generator.error import ConfigValidationError
-from gsm_data_generator.executor.script import DataGenerationScript
-from gsm_data_generator.globals.parameters import DataFrames, Parameters
-from gsm_data_generator.parser.utils import json_loader_2_ConfigHolder
+from pysim_perso import DATAGENError
+from pysim_perso.error import ConfigValidationError
+from pysim_perso.executor.script import DataGenerationScript
+from pysim_perso.globals.parameters import DataFrames, Parameters
+from pysim_perso.parser.utils import json_loader_2_ConfigHolder
 
 _BASE_CONFIG = {
     "DISP": {

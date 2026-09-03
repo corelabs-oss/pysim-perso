@@ -1,7 +1,7 @@
 import re
 import pytest
 
-from gsm_data_generator.algorithm import DependentDataGenerator
+from pysim_perso.algorithm import DependentDataGenerator
 
 
 @pytest.mark.parametrize(

@@ -43,7 +43,7 @@ def get_lib_path():
     """Get library path, name and version"""
     # We can not import `libinfo.py` in setup.py directly since __init__.py
     # Will be invoked which introduces dependencies
-    libinfo_py = os.path.join(CURRENT_DIR, "./gsm_data_generator/libinfo.py")
+    libinfo_py = os.path.join(CURRENT_DIR, "./pysim_perso/libinfo.py")
     libinfo = {"__file__": libinfo_py}
     exec(compile(open(libinfo_py, "rb").read(), libinfo_py, "exec"), libinfo, libinfo)
     version = libinfo["__version__"]
@@ -113,10 +113,10 @@ def get_lib_path():
 def get_version():
     """Read __version__ out of libinfo.py without importing the package.
 
-    Importing gsm_data_generator here would pull in pandas/pydantic, which are
+    Importing pysim_perso here would pull in pandas/pydantic, which are
     not necessarily installed yet at setup time.
     """
-    libinfo_py = os.path.join(CURRENT_DIR, "gsm_data_generator", "libinfo.py")
+    libinfo_py = os.path.join(CURRENT_DIR, "pysim_perso", "libinfo.py")
     libinfo = {"__file__": libinfo_py}
     exec(compile(open(libinfo_py, "rb").read(), libinfo_py, "exec"), libinfo, libinfo)
     return libinfo["__version__"]
@@ -176,14 +176,19 @@ extras_require = {
 }
 
 setup(
-    name="gsm-data-generator",
+    name="pysim-perso",
     version=__version__,
-    description="GSM Data Generator: A library for generating and processing GSM/USIM/eSIM SIM card datasets",
+    description="pysim-perso: A library for generating and processing GSM/USIM/eSIM SIM card datasets",
     long_description=long_description_contents(),
     long_description_content_type="text/markdown",
-    url="https://github.com/open-etsi/gsm-data-generator",
-    download_url="https://github.com/open-etsi/gsm-data-generator",
-    author="GSM Data Generator Contributors",
+    url="https://github.com/corelabs-oss/pysim-perso",
+    download_url="https://github.com/corelabs-oss/pysim-perso",
+    author="pysim-perso Contributors",
+    project_urls={
+        "Source": "https://github.com/corelabs-oss/pysim-perso",
+        "Issues": "https://github.com/corelabs-oss/pysim-perso/issues",
+        "Changelog": "https://github.com/corelabs-oss/pysim-perso/blob/main/CHANGELOG.md",
+    },
     license="Apache-2.0",
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -193,6 +198,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Software Development :: Libraries",
         "Topic :: Communications :: Telephony",
     ],
@@ -203,7 +210,7 @@ setup(
     zip_safe=True,
     install_requires=requirements["core"][1],
     extras_require=extras_require,
-    packages=find_packages(include=["gsm_data_generator", "gsm_data_generator.*"]),
+    packages=find_packages(include=["pysim_perso", "pysim_perso.*"]),
     # No distclass=BinaryDistribution: this is a pure-Python package, and
     # forcing a binary distribution produced platform-tagged wheels
     # (…-cp311-cp311-linux_x86_64.whl) that cannot be reused across platforms.

@@ -14,28 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""GSM Data Generator — public API."""
+"""pysim-perso — public API."""
 
 import multiprocessing
 import os
 import sys
 
-from gsm_data_generator.base import __version__, DATAGENError
-from gsm_data_generator import error
+from pysim_perso.base import __version__, DATAGENError
+from pysim_perso import error
 
 # ------------------------------------------------------------------ #
 # Public API re-exports
 # ------------------------------------------------------------------ #
-from gsm_data_generator.generator.generate import DataGenerator
-from gsm_data_generator.algorithm.encrypt import CryptoUtils, DependentDataGenerator
-from gsm_data_generator.algorithm.encode import EncodingUtils
-from gsm_data_generator.processor.process import DataProcessing, DataFrameProcessor
-from gsm_data_generator.transform.transform import DataTransform
-from gsm_data_generator.globals.parameters import Parameters, DataFrames
-from gsm_data_generator.executor.script import DataGenerationScript
-from gsm_data_generator.issuance import IssuanceLedger
-from gsm_data_generator.writer import OutputWriter
-from gsm_data_generator.parser.utils import (
+from pysim_perso.generator.generate import DataGenerator
+from pysim_perso.algorithm.encrypt import CryptoUtils, DependentDataGenerator
+from pysim_perso.algorithm.encode import EncodingUtils
+from pysim_perso.processor.process import DataProcessing, DataFrameProcessor
+from pysim_perso.transform.transform import DataTransform
+from pysim_perso.globals.parameters import Parameters, DataFrames
+from pysim_perso.executor.script import DataGenerationScript
+from pysim_perso.issuance import IssuanceLedger
+from pysim_perso.writer import OutputWriter
+from pysim_perso.parser.utils import (
     json_loader,
     json_loader_2_ConfigHolder,
     ConfigHolder,
@@ -69,7 +69,7 @@ def _wrap_excepthook(exception_hook):
 def install_excepthook() -> None:
     """Install DATAGEN's exception hook. Call explicitly; not automatic.
 
-    The hook suppresses backtraces for :class:`~gsm_data_generator.error.
+    The hook suppresses backtraces for :class:`~pysim_perso.error.
     DiagnosticError` unless ``DATAGEN_BACKTRACE=1`` and terminates active
     multiprocessing children on an unhandled exception.
 

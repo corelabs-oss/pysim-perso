@@ -21,6 +21,8 @@
 include gen_requirements.py
 
 include README.md
+include CHANGELOG.md
+include RELEASING.md
 include LICENSE
 include settings.example.json
 

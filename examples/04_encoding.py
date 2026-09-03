@@ -24,7 +24,7 @@ Run:
     python examples/04_encoding.py
 """
 
-from gsm_data_generator import EncodingUtils
+from pysim_perso import EncodingUtils
 
 
 def main() -> None:
