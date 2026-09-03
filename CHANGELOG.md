@@ -23,6 +23,17 @@ version is `0`, the minor version may carry breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- Reorganised `executor/script.py` so it reads in pipeline order — configure,
+  validate, generate, write — under section headers matching those stages, and
+  documented that lifecycle in the module and class docstrings. Collapsed the
+  triplicated `generate_pin`/`generate_puk`/`generate_adm` bodies onto one
+  `_fixed_or_random` helper, replaced the positional 4-tuples in
+  `generate_all_data` with a named `_OutputSpec`, and lifted the OTA keyset
+  column names to a module constant. No behaviour change: every public method
+  keeps its name, signature and semantics.
+
 ### Removed
 
 - Dead scaffolding inherited from the Apache TVM project this repository was
