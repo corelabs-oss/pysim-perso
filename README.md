@@ -56,19 +56,48 @@ cp settings.example.json settings.json
 At minimum, set `imsi`, `iccid`, `K4`, `op` and `size`.
 
 ```python
-from pysim_perso import json_loader, DataGenerationScript
+import sys
 
-config = json_loader("settings.json")
+from pysim_perso import DataGenerationScript, json_loader
+from pysim_perso.error import ConfigValidationError, IssuanceOverlapError
 
-script = DataGenerationScript(config)
-script.json_to_global_params()
 
-result_dfs, keys = script.generate_all_data()
-print(result_dfs["ELECT"].head())      # pandas DataFrame, one row per SIM
+def main() -> int:
+    script = DataGenerationScript(json_loader("settings.json"))
+    script.json_to_global_params()
 
-written = script.write_outputs(result_dfs)
-print(written["ELECT"])                # <OUTPUT_FILES_DIR>/<FILE_NAME>.txt
+    try:
+        # Builds pandas frames in memory; nothing is written yet.
+        frames, keys = script.generate_all_data()
+    except ConfigValidationError as exc:
+        print(f"invalid configuration:\n{exc}", file=sys.stderr)
+        return 1
+
+    elect = frames["ELECT"]
+    print(f"{len(elect)} cards, OP {keys['op']}")
+    print(elect[["ICCID", "IMSI", "KI", "OPC"]].head().to_string(index=False))
+
+    try:
+        # The batch counts as issued here, and the ledger is updated.
+        written = script.write_outputs(frames)
+    except IssuanceOverlapError as exc:
+        print(f"refusing to re-issue: {exc}", file=sys.stderr)
+        return 1
+
+    for output_type, path in sorted(written.items()):
+        print(f"{output_type:<7} -> {path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 ```
+
+The two `except` clauses cover the failures you will actually hit:
+`ConfigValidationError` when `prod_check` is enabled and a parameter is wrong,
+and `IssuanceOverlapError` when the identifiers in this batch were issued
+before. Both are documented under [Configuration](#configuration) and
+[Issuance ledger](#issuance-ledger).
 
 Each `DataGenerationScript` owns its own state, so independent configurations
 can be generated concurrently in one process. Read a run's parameters through
