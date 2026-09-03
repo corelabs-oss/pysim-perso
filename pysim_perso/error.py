@@ -20,20 +20,13 @@ Each error class takes an error message as its input.
 See the example sections for suggested message conventions.
 To make the code more readable, we recommended developers to
 copy the examples and raise errors with the same message convention.
-
-.. note::
-
-    Please also refer to :ref:`error-handling-guide`.
 """
-
-# from gsmDataGen.ffi import register_error
 
 
 class DATAGENError(RuntimeError):
     pass
 
 
-##@register_error
 class InternalError(DATAGENError):
     """Internal error in the system.
 
@@ -51,22 +44,18 @@ class InternalError(DATAGENError):
     """
 
 
-# @register_error
 class RPCError(DATAGENError):
     """Error thrown by the remote server handling the RPC call."""
 
 
-# @register_error
 class RPCSessionTimeoutError(RPCError, TimeoutError):
     """Error thrown by the remote server when the RPC session has expired."""
 
 
-# @register_error
 class OpError(DATAGENError):
     """Base class of all operator errors in frontends."""
 
 
-# @register_error
 class OpNotImplemented(OpError, NotImplementedError):
     """Operator is not implemented.
 
@@ -80,7 +69,6 @@ class OpNotImplemented(OpError, NotImplementedError):
     """
 
 
-# @register_error
 class OpAttributeRequired(OpError, AttributeError):
     """Required attribute is not found.
 
@@ -94,7 +82,6 @@ class OpAttributeRequired(OpError, AttributeError):
     """
 
 
-# @register_error
 class OpAttributeInvalid(OpError, AttributeError):
     """Attribute value is invalid when taking in a frontend operator.
 
@@ -108,7 +95,6 @@ class OpAttributeInvalid(OpError, AttributeError):
     """
 
 
-# @register_error
 class OpAttributeUnImplemented(OpError, NotImplementedError):
     """Attribute is not supported in a certain frontend.
 
@@ -122,7 +108,6 @@ class OpAttributeUnImplemented(OpError, NotImplementedError):
     """
 
 
-# @register_error
 class DiagnosticError(DATAGENError):
     """Error diagnostics were reported during the execution of a pass.
 
@@ -130,7 +115,6 @@ class DiagnosticError(DATAGENError):
     """
 
 
-# @register_error
 class ConfigValidationError(DATAGENError, ValueError):
     """Configuration parameters failed validation before data generation.
 
@@ -152,7 +136,6 @@ class ConfigValidationError(DATAGENError, ValueError):
     """
 
 
-# @register_error
 class IssuanceOverlapError(DATAGENError):
     """A batch would re-issue identifiers that were already issued.
 
