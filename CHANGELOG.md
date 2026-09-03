@@ -23,6 +23,39 @@ version is `0`, the minor version may carry breaking changes.
 
 ## [Unreleased]
 
+### Performance
+
+- Generation is **1.63x faster** — 18,900 to 30,900 cards/s on a 50,000-card
+  batch, taking a million-card run from ~53s to ~32s. Output is byte-identical;
+  verified by diffing the full pipeline against `main` with a deterministic
+  generator across all three output types.
+  - EKI now reuses one AES object for the batch instead of constructing a
+    cipher per card, which was 27% of a run on its own. The transport key is
+    constant per batch and Ki is exactly one block, so CBC-with-zero-IV is
+    identical to ECB, and ECB carries no chaining state. New
+    `TransportKeyCipher` enforces the single-block precondition that makes
+    the substitution valid.
+  - OPc derivation uses ECB for the same reason, dropping a zero-IV rebuild
+    per card. Still checked against the TS 35.206 vector on every CI run.
+  - `CryptoUtils.xor_str` uses `Crypto.Util.strxor` instead of a Python
+    comprehension, keeping the previous truncate-to-shortest behaviour.
+  - `DataTransform.b2h` uses `bytes.hex()` rather than an f-string join.
+  - `secrets.SystemRandom()` is constructed once at module level instead of
+    on every PIN and PUK draw.
+  - Fixed PIN/PUK/ADM columns are broadcast once rather than re-resolving the
+    per-batch flag for every row, and the random columns build a list directly
+    instead of routing through `Series.apply`.
+
+### Changed
+
+- `generate_initial_data` validates K4 and OP before building the frame rather
+  than after, so a bad key fails immediately instead of after a full run.
+
+### Removed
+
+- `DataGenerationScript.crypto_utils`, an attribute that was assigned and never
+  read. `CryptoUtils` remains importable from `pysim_perso`.
+
 ### Changed
 
 - Reorganised `executor/script.py` so it reads in pipeline order — configure,
