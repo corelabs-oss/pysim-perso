@@ -1,0 +1,220 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: Release
+
+# Pushing a vX.Y.Z tag is the single trigger for a release. Nothing here runs
+# on a branch push, so an accidental merge cannot publish to PyPI.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+[abrc]*[0-9]*"
+      - "v[0-9]+.[0-9]+.[0-9]+.dev[0-9]+"
+
+# A release must not race another release of the same tag, and half-published
+# runs are worse than late ones, so never cancel one in progress.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DEFAULT_PYTHON: "3.11"
+
+jobs:
+  # ------------------------------------------------------------------ #
+  # Build the artifacts and refuse to go further if anything disagrees
+  # ------------------------------------------------------------------ #
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Assert the tag matches __version__
+        # libinfo.py is the single source of truth. A tag that disagrees with
+        # it would publish a distribution nobody can trace back to a commit,
+        # and PyPI version numbers cannot be reused once burned.
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          declared=$(python -c "exec(open('pysim_perso/libinfo.py').read()); print(__version__)")
+          echo "tag=${tag} declared=${declared}"
+          if [ "${version}" != "${declared}" ]; then
+            echo "::error::Tag ${tag} implies version ${version}, but pysim_perso/libinfo.py declares ${declared}"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          # a/b/rc/dev suffixes mark a pre-release on GitHub and keep it out
+          # of the "latest release" slot.
+          if printf '%s' "${version}" | grep -Eq '(a|b|rc|\.dev)[0-9]+$'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assert the changelog has an entry for this version
+        run: |
+          if ! grep -q "^## \[${{ steps.version.outputs.version }}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${{ steps.version.outputs.version }}]' section"
+            exit 1
+          fi
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Validate distribution metadata
+        run: twine check --strict dist/*
+
+      - name: Assert the wheel is platform independent
+        run: |
+          wheel=$(ls dist/*.whl)
+          echo "Built: ${wheel}"
+          case "${wheel}" in
+            *-py3-none-any.whl)
+              echo "OK: platform-independent wheel" ;;
+            *)
+              echo "::error::Expected a py3-none-any wheel, got ${wheel}"
+              exit 1 ;;
+          esac
+
+      - name: Install the built wheel into a clean environment
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/python -m pip install --upgrade pip
+          /tmp/clean/bin/python -m pip install dist/*.whl
+          # Run from a directory that does not contain the source tree,
+          # otherwise sys.path[0] shadows the installed package.
+          mkdir -p /tmp/smoke
+          cp verify.py settings.json /tmp/smoke/
+
+      - name: Smoke-test the installed wheel
+        working-directory: /tmp/smoke
+        run: |
+          /tmp/clean/bin/python - <<'PY'
+          import importlib.metadata as md
+          import pysim_perso
+
+          library = pysim_perso.__version__
+          distribution = md.version("pysim-perso")
+          print(f"library={library} distribution={distribution}")
+          if library != distribution:
+              raise SystemExit(
+                  f"::error::Version mismatch: library reports {library}, "
+                  f"distribution reports {distribution}"
+              )
+          if "site-packages" not in pysim_perso.__file__:
+              raise SystemExit(
+                  "::error::Imported the source tree instead of the wheel"
+              )
+          PY
+          /tmp/clean/bin/python verify.py
+
+      - name: Extract the changelog section for this release
+        run: |
+          awk -v ver="${{ steps.version.outputs.version }}" '
+            $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          echo "--- release notes ---"
+          cat release-notes.md
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: |
+            dist/
+            release-notes.md
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ #
+  # Publish to PyPI via Trusted Publishing (OIDC — no API token stored)
+  # ------------------------------------------------------------------ #
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pysim-perso/${{ needs.build.outputs.version }}
+    permissions:
+      # Required for Trusted Publishing: the job mints a short-lived OIDC
+      # token that PyPI exchanges for an upload token.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: .
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  # ------------------------------------------------------------------ #
+  # Create the GitHub release, with the built artifacts attached
+  # ------------------------------------------------------------------ #
+  github-release:
+    name: Create GitHub release
+    needs: [build, pypi]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: .
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+        run: |
+          args=""
+          if [ "${PRERELEASE}" = "true" ]; then
+            args="--prerelease"
+          fi
+          # shellcheck disable=SC2086
+          gh release create "${TAG}" \
+            --title "pysim-perso ${VERSION}" \
+            --notes-file release-notes.md \
+            --verify-tag \
+            ${args} \
+            dist/*

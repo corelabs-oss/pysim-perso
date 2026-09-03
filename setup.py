@@ -184,6 +184,11 @@ setup(
     url="https://github.com/corelabs-oss/pysim-perso",
     download_url="https://github.com/corelabs-oss/pysim-perso",
     author="pysim-perso Contributors",
+    project_urls={
+        "Source": "https://github.com/corelabs-oss/pysim-perso",
+        "Issues": "https://github.com/corelabs-oss/pysim-perso/issues",
+        "Changelog": "https://github.com/corelabs-oss/pysim-perso/blob/main/CHANGELOG.md",
+    },
     license="Apache-2.0",
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -193,6 +198,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Software Development :: Libraries",
         "Topic :: Communications :: Telephony",
     ],
