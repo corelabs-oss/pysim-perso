@@ -1,7 +1,7 @@
 # test_config.py
 import json
 import pytest
-from gsm_data_generator.parser.utils import (
+from pysim_perso.parser.utils import (
     DISP,
     PATHS,
     PARAMETERS,

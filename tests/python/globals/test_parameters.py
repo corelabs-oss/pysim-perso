@@ -1,8 +1,8 @@
 # test_parameters.py
 import pytest
 import pandas as pd
-import gsm_data_generator
-from gsm_data_generator.globals import Parameters, DataFrames
+import pysim_perso
+from pysim_perso.globals import Parameters, DataFrames
 
 
 @pytest.fixture

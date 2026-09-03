@@ -59,7 +59,7 @@ jobs:
         run: python -m pip install --upgrade pip "black==${BLACK_VERSION}"
 
       - name: Check formatting
-        run: black --check --diff gsm_data_generator/ tests/python/ verify.py setup.py
+        run: black --check --diff pysim_perso/ tests/python/ verify.py setup.py
 
   # ------------------------------------------------------------------ #
   # Static typing
@@ -88,7 +88,7 @@ jobs:
           python -m pip install "mypy==${MYPY_VERSION}" pandas-stubs
 
       - name: Run mypy
-        run: mypy gsm_data_generator/
+        run: mypy pysim_perso/
 
   # ------------------------------------------------------------------ #
   # Tests
@@ -135,7 +135,7 @@ jobs:
           python -m pytest
           --disable-warnings
           -v
-          --cov=gsm_data_generator
+          --cov=pysim_perso
           --cov-report=term-missing
           --cov-report=xml
           --cov-fail-under=80
@@ -209,18 +209,18 @@ jobs:
         run: |
           /tmp/clean/bin/python - <<'PY'
           import importlib.metadata as md
-          import gsm_data_generator
+          import pysim_perso
 
-          library = gsm_data_generator.__version__
-          distribution = md.version("gsm-data-generator")
+          library = pysim_perso.__version__
+          distribution = md.version("pysim-perso")
           print(f"library={library} distribution={distribution}")
-          print(f"imported from {gsm_data_generator.__file__}")
+          print(f"imported from {pysim_perso.__file__}")
           if library != distribution:
               raise SystemExit(
                   f"::error::Version mismatch: library reports {library}, "
                   f"distribution reports {distribution}"
               )
-          if "site-packages" not in gsm_data_generator.__file__:
+          if "site-packages" not in pysim_perso.__file__:
               raise SystemExit(
                   "::error::Imported the source tree instead of the "
                   "installed wheel"

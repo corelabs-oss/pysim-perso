@@ -17,18 +17,18 @@
 
 <table>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/hamzaqureshi5/gsm-data-generator-gui/ds0/src/resources/icon_without_text.png" width="128"/></td>
+    <td><img src="https://raw.githubusercontent.com/hamzaqureshi5/pysim-perso-gui/ds0/src/resources/icon_without_text.png" width="128"/></td>
     <td style="vertical-align: middle; padding-left: 16px;">
-      <h1>Open GSM Data Generation Stack</h1>
+      <h1>pysim-perso</h1>
     </td>
   </tr>
 </table>
 
-[![CI](https://github.com/hamzaqureshi5/gsm-data-generation_lib/actions/workflows/ci.yml/badge.svg)](https://github.com/hamzaqureshi5/gsm-data-generation_lib/actions/workflows/ci.yml)
+[![CI](https://github.com/corelabs-oss/pysim-perso/actions/workflows/ci.yml/badge.svg)](https://github.com/corelabs-oss/pysim-perso/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-GSM Data Generator produces the per-card material a SIM personalization run
+pysim-perso produces the per-card material a SIM personalization run
 requires — identifiers, authentication keys and administrative codes — from a
 single declarative configuration, and emits it in the formats consumed by
 personalization equipment, laser marking systems and network provisioning.
@@ -87,8 +87,8 @@ CI run.
 Requires **Python 3.10 or newer**.
 
 ```bash
-git clone https://github.com/hamzaqureshi5/gsm-data-generation_lib.git
-cd gsm-data-generation_lib
+git clone https://github.com/corelabs-oss/pysim-perso.git
+cd pysim-perso
 pip install .
 ```
 
@@ -112,7 +112,7 @@ cp settings.example.json settings.json
 At minimum, set `imsi`, `iccid`, `K4`, `op` and `size`.
 
 ```python
-from gsm_data_generator import json_loader, DataGenerationScript
+from pysim_perso import json_loader, DataGenerationScript
 
 config = json_loader("settings.json")
 
@@ -270,7 +270,7 @@ secret.
 ## Public API
 
 ```python
-from gsm_data_generator import (
+from pysim_perso import (
     DataGenerationScript,       # end-to-end pipeline
     json_loader,                # load and validate configuration from a path
     json_loader_2_ConfigHolder, # ... from a dict or JSON string
@@ -302,10 +302,10 @@ pip install pytest pytest-cov black mypy pandas-stubs
 
 pytest --maxfail=1 --disable-warnings -v          # full suite
 pytest tests/python/algorithm/test_encrypt.py -v  # one module
-pytest --cov=gsm_data_generator --cov-report=term-missing
+pytest --cov=pysim_perso --cov-report=term-missing
 
-black gsm_data_generator/ tests/python/ verify.py setup.py
-mypy gsm_data_generator/
+black pysim_perso/ tests/python/ verify.py setup.py
+mypy pysim_perso/
 ```
 
 `pandas-stubs` is required: `mypy.ini` sets `ignore_missing_imports = False`,

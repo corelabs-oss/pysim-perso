@@ -2,7 +2,7 @@
 import re
 import pytest
 
-import gsm_data_generator.generator as generator
+import pysim_perso.generator as generator
 
 
 # -------------------------

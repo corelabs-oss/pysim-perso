@@ -32,7 +32,7 @@ Run:
 import random
 import tempfile
 
-from gsm_data_generator import DataGenerationScript, json_loader
+from pysim_perso import DataGenerationScript, json_loader
 
 REPO_ROOT_SETTINGS = "settings.example.json"
 

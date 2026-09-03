@@ -14,9 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Entry point for `python -m gsm_data_generator`."""
+"""Library support utilities."""
 
-from gsm_data_generator.support import describe
+import sys
+import platform
 
-describe()
-print("\nRun `python verify.py` for a full end-to-end pipeline check.")
+import pysim_perso
+
+
+def describe() -> None:
+    """Print library version and Python environment information."""
+    lines = [
+        f"pysim-perso version : {pysim_perso.__version__}",
+        f"Python version             : {sys.version.split()[0]}",
+        f"Platform                   : {platform.platform()}",
+        f"Architecture               : {platform.machine()}",
+    ]
+    print("\n".join(lines))
+
+
+__all__ = ["describe"]

@@ -27,6 +27,6 @@ from .libinfo import __version__
 from .error import DATAGENError
 
 if sys.version_info < (3, 10):
-    raise RuntimeError("gsm-data-generator requires Python 3.10 or newer")
+    raise RuntimeError("pysim-perso requires Python 3.10 or newer")
 
 __all__ = ["__version__", "DATAGENError"]

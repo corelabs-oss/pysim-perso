@@ -18,7 +18,7 @@
 
 import pytest
 
-from gsm_data_generator.processor.process import DataFrameProcessor, DataProcessing
+from pysim_perso.processor.process import DataFrameProcessor, DataProcessing
 
 
 def _frame(rows):

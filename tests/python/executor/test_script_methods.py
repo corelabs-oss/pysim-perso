@@ -18,9 +18,9 @@
 
 import pytest
 
-from gsm_data_generator.executor.script import DataGenerationScript
-from gsm_data_generator.globals.parameters import Parameters, DataFrames
-from gsm_data_generator.parser.utils import json_loader_2_ConfigHolder
+from pysim_perso.executor.script import DataGenerationScript
+from pysim_perso.globals.parameters import Parameters, DataFrames
+from pysim_perso.parser.utils import json_loader_2_ConfigHolder
 
 _BASE_CONFIG = {
     "DISP": {

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-verify.py — End-to-end smoke test for gsm-data-generator.
+verify.py — End-to-end smoke test for pysim-perso.
 
 Usage
 -----
@@ -47,9 +47,7 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Verify gsm-data-generator works end-to-end."
-    )
+    parser = argparse.ArgumentParser(description="Verify pysim-perso works end-to-end.")
     parser.add_argument(
         "--config",
         default="settings.json",
@@ -61,7 +59,7 @@ def main() -> int:
     args = parser.parse_args()
 
     print("=" * 60)
-    print("  GSM Data Generator — Verification")
+    print("  pysim-perso — Verification")
     print("=" * 60)
 
     failures = 0
@@ -71,8 +69,8 @@ def main() -> int:
     # ------------------------------------------------------------------ #
     section("1/4  Imports")
     try:
-        import gsm_data_generator
-        from gsm_data_generator import (
+        import pysim_perso
+        from pysim_perso import (
             DataGenerator,
             DependentDataGenerator,
             CryptoUtils,
@@ -81,11 +79,9 @@ def main() -> int:
             json_loader,
         )
 
-        ok = check(
-            "gsm_data_generator", True, f"version {gsm_data_generator.__version__}"
-        )
+        ok = check("pysim_perso", True, f"version {pysim_perso.__version__}")
     except ImportError as exc:
-        ok = check("gsm_data_generator", False, str(exc))
+        ok = check("pysim_perso", False, str(exc))
         failures += 1
         print("\nInstall the library first:  pip install -e .")
         return 1

@@ -25,7 +25,7 @@ import copy
 import pytest
 from pydantic import ValidationError
 
-from gsm_data_generator.parser.utils import json_loader_2_ConfigHolder
+from pysim_perso.parser.utils import json_loader_2_ConfigHolder
 
 VALID_CONFIG = {
     "DISP": {

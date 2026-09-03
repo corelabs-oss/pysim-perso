@@ -1,15 +1,15 @@
-from gsm_data_generator.executor import DataGenerationScript
-from gsm_data_generator.parser import json_loader_2_ConfigHolder, json_loader
-from gsm_data_generator.parser.utils import ConfigHolder
-from gsm_data_generator.utils import list_2_dict, dict_2_list
+from pysim_perso.executor import DataGenerationScript
+from pysim_perso.parser import json_loader_2_ConfigHolder, json_loader
+from pysim_perso.parser.utils import ConfigHolder
+from pysim_perso.utils import list_2_dict, dict_2_list
 import json
-from gsm_data_generator.globals import Parameters
+from pysim_perso.globals import Parameters
 
 import pytest
 import json
-from gsm_data_generator.executor import DataGenerationScript
-from gsm_data_generator.parser import json_loader_2_ConfigHolder
-from gsm_data_generator.globals import Parameters
+from pysim_perso.executor import DataGenerationScript
+from pysim_perso.parser import json_loader_2_ConfigHolder
+from pysim_perso.globals import Parameters
 
 p = Parameters.get_instance()
 

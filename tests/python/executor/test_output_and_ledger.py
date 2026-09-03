@@ -22,12 +22,12 @@ import json
 import pandas as pd
 import pytest
 
-from gsm_data_generator.error import IssuanceOverlapError
-from gsm_data_generator.executor.script import DataGenerationScript
-from gsm_data_generator.globals.parameters import DataFrames
-from gsm_data_generator.issuance import LEDGER_FILENAME, IssuanceLedger
-from gsm_data_generator.parser.utils import json_loader_2_ConfigHolder
-from gsm_data_generator.writer import OutputWriter
+from pysim_perso.error import IssuanceOverlapError
+from pysim_perso.executor.script import DataGenerationScript
+from pysim_perso.globals.parameters import DataFrames
+from pysim_perso.issuance import LEDGER_FILENAME, IssuanceLedger
+from pysim_perso.parser.utils import json_loader_2_ConfigHolder
+from pysim_perso.writer import OutputWriter
 
 _BASE = {
     "DISP": {

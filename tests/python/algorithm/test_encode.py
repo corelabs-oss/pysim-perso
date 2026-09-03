@@ -1,6 +1,6 @@
 # tests/test_encoding_utils.py
 import pytest
-from gsm_data_generator.algorithm import EncodingUtils
+from pysim_perso.algorithm import EncodingUtils
 
 
 # -------------------------
