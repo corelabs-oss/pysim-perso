@@ -1,105 +1,49 @@
-<!--- Licensed to the Apache Software Foundation (ASF) under one -->
-<!--- or more contributor license agreements.  See the NOTICE file -->
-<!--- distributed with this work for additional information -->
-<!--- regarding copyright ownership.  The ASF licenses this file -->
-<!--- to you under the Apache License, Version 2.0 (the -->
-<!--- "License"); you may not use this file except in compliance -->
-<!--- with the License.  You may obtain a copy of the License at -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/corelabs-aperture-bone.svg">
+    <img src="docs/corelabs-aperture-ink.svg" alt="corelabs-oss" width="96">
+  </picture>
+</p>
 
-<!---   http://www.apache.org/licenses/LICENSE-2.0 -->
+<h1 align="center">pysim-perso</h1>
 
-<!--- Unless required by applicable law or agreed to in writing, -->
-<!--- software distributed under the License is distributed on an -->
-<!--- "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY -->
-<!--- KIND, either express or implied.  See the License for the -->
-<!--- specific language governing permissions and limitations -->
-<!--- under the License. -->
+<p align="center">
+  <a href="https://github.com/corelabs-oss/pysim-perso/actions/workflows/ci.yml"><img src="https://github.com/corelabs-oss/pysim-perso/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/pysim-perso/"><img src="https://img.shields.io/pypi/v/pysim-perso" alt="PyPI"></a>
+  <a href="https://pypi.org/project/pysim-perso/"><img src="https://img.shields.io/pypi/pyversions/pysim-perso" alt="Python versions"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="License"></a>
+</p>
 
-<table>
-  <tr>
-    <td><img src="https://raw.githubusercontent.com/hamzaqureshi5/pysim-perso-gui/ds0/src/resources/icon_without_text.png" width="128"/></td>
-    <td style="vertical-align: middle; padding-left: 16px;">
-      <h1>pysim-perso</h1>
-    </td>
-  </tr>
-</table>
-
-[![CI](https://github.com/corelabs-oss/pysim-perso/actions/workflows/ci.yml/badge.svg)](https://github.com/corelabs-oss/pysim-perso/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
-
-pysim-perso produces the per-card material a SIM personalization run
-requires — identifiers, authentication keys and administrative codes — from a
-single declarative configuration, and emits it in the formats consumed by
+pysim-perso produces the per-card material a SIM personalization run requires —
+identifiers, authentication keys and administrative codes — from a single
+declarative configuration, and emits it in the formats consumed by
 personalization equipment, laser marking systems and network provisioning.
 
 It is intended for SIM manufacturers, MVNOs and test-lab engineers who need
 reproducible, standards-conformant batches without maintaining bespoke scripts
 per operator.
 
-## Contents
-
-- [What it generates](#what-it-generates)
-- [Standards](#standards)
-- [Installation](#installation)
-- [Quick start](#quick-start)
-- [Output formats](#output-formats)
-- [Configuration](#configuration)
-- [Identifier sequencing](#identifier-sequencing)
-- [Issuance ledger](#issuance-ledger)
-- [Security considerations](#security-considerations)
-- [Public API](#public-api)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-
-## What it generates
-
-Each generated record describes one SIM card across 23 fields:
-
-| Group | Fields | Derivation |
-|---|---|---|
-| Identifiers | `ICCID`, `IMSI` | Sequenced from a configured starting value |
-| Authentication | `KI` | 128-bit random, from the OS CSPRNG |
-| | `OPC` | `AES_Ki(OP) ⊕ OP` |
-| | `EKI` | `AES_K4(Ki)` — Ki under the transport key |
-| | `ACC` | Access control class bitmask, from the last IMSI digit |
-| Cardholder | `PIN1`, `PIN2`, `PUK1`, `PUK2` | Fixed per batch or random per card |
-| Administrative | `ADM1`, `ADM6` | Fixed per batch or random per card |
-| OTA | `KIC1-3`, `KID1-3`, `KIK1-3` | 128-bit random per card |
-| Operator | `OP`, `K4` | Constant across the batch, from configuration |
-
-## Standards
-
-| Area | Reference |
-|---|---|
-| OPc derivation | 3GPP TS 35.206 (MILENAGE) |
-| `EF_IMSI`, `EF_ICCID`, `EF_ACC` encoding | 3GPP TS 31.102 |
-| Access control classes | 3GPP TS 22.011 |
-| ICCID numbering and check digit | ITU-T E.118 (Luhn) |
-| OTA keysets | ETSI TS 102 225 |
-
-The OPc implementation is verified against the TS 35.206 test vector on every
-CI run.
-
 ## Installation
 
-Requires **Python 3.10 or newer**.
+Requires Python 3.10 or newer.
 
 ```bash
-git clone https://github.com/corelabs-oss/pysim-perso.git
-cd pysim-perso
-pip install .
-```
-
-For development, install in editable mode:
-
-```bash
-pip install -e .
+pip install pysim-perso
 ```
 
 Runtime dependencies (`pandas`, `pydantic`, `pycryptodome`, `numpy`) are
 resolved automatically.
+
+<details>
+<summary>Installing from source</summary>
+
+```bash
+git clone https://github.com/corelabs-oss/pysim-perso.git
+cd pysim-perso
+pip install -e .
+```
+
+</details>
 
 ## Quick start
 
@@ -135,6 +79,37 @@ To confirm an installation end to end, including the TS 35.206 test vector:
 ```bash
 python verify.py
 ```
+
+Further runnable examples are in [`examples/`](examples/).
+
+## What it generates
+
+Each generated record describes one SIM card across 23 fields:
+
+| Group | Fields | Derivation |
+|---|---|---|
+| Identifiers | `ICCID`, `IMSI` | Sequenced from a configured starting value |
+| Authentication | `KI` | 128-bit random, from the OS CSPRNG |
+| | `OPC` | `AES_Ki(OP) ⊕ OP` |
+| | `EKI` | `AES_K4(Ki)` — Ki under the transport key |
+| | `ACC` | Access control class bitmask, from the last IMSI digit |
+| Cardholder | `PIN1`, `PIN2`, `PUK1`, `PUK2` | Fixed per batch or random per card |
+| Administrative | `ADM1`, `ADM6` | Fixed per batch or random per card |
+| OTA | `KIC1-3`, `KID1-3`, `KIK1-3` | 128-bit random per card |
+| Operator | `OP`, `K4` | Constant across the batch, from configuration |
+
+### Standards
+
+| Area | Reference |
+|---|---|
+| OPc derivation | 3GPP TS 35.206 (MILENAGE) |
+| `EF_IMSI`, `EF_ICCID`, `EF_ACC` encoding | 3GPP TS 31.102 |
+| Access control classes | 3GPP TS 22.011 |
+| ICCID numbering and check digit | ITU-T E.118 (Luhn) |
+| OTA keysets | ETSI TS 102 225 |
+
+The OPc implementation is verified against the TS 35.206 test vector on every
+CI run.
 
 ## Output formats
 
@@ -225,7 +200,7 @@ integers, which preserves their structure:
 - **ICCID width is enforced.** A batch that would extend the ICCID beyond its
   configured length is rejected.
 
-> **Note**
+> [!NOTE]
 > The five-digit protected prefix is a conservative bound valid under every
 > numbering plan. Where the MNC is three digits, its final digit falls inside
 > the incremented range and is not covered; keep such batches clear of the MSIN
@@ -311,26 +286,17 @@ mypy pysim_perso/
 `pandas-stubs` is required: `mypy.ini` sets `ignore_missing_imports = False`,
 so unstubbed `pandas` is an error rather than a warning.
 
-To build and validate the distributions:
+[CI](.github/workflows/ci.yml) runs black, mypy, the suite across Python
+3.10–3.13 on Linux plus 3.11 on Windows and macOS, and a packaging job that
+installs the built wheel into a clean environment and smoke-tests it. It also
+runs weekly: dependencies are unpinned, so the scheduled run surfaces upstream
+breakage without waiting for a change.
 
-```bash
-pip install build twine
-python -m build && twine check dist/*
-```
+## Releasing
 
-### Continuous integration
-
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull
-request, on pushes to `main`, and weekly — dependencies are unpinned, so the
-scheduled run surfaces upstream breakage without waiting for a change.
-
-| Job | Scope |
-|---|---|
-| `format` | `black --check` |
-| `typecheck` | `mypy` with `pandas-stubs` |
-| `test` | Python 3.10–3.13 on Linux; 3.11 on Windows and macOS. Suite, coverage floor, and `verify.py` |
-| `package` | Builds sdist and wheel, validates metadata, installs the wheel into a clean environment and smoke-tests it |
-| `ci-ok` | Aggregate gate for branch protection |
+Versioning and the tag-driven release pipeline are described in
+[RELEASING.md](RELEASING.md). Per-version changes are in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 
