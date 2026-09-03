@@ -23,6 +23,29 @@ version is `0`, the minor version may carry breaking changes.
 
 ## [Unreleased]
 
+### Removed
+
+- Dead scaffolding inherited from the Apache TVM project this repository was
+  started from, none of it reachable from the build:
+  - `setup.py`: `get_lib_path()` (called a `find_lib_path` that `libinfo.py`
+    never defined), `git_describe_version()` (read a `../version.py` that does
+    not exist), `_remove_path()`, the unused `BinaryDistribution` class and
+    `Extension` imports, `FFI_MODE`/`CONDA_BUILD`/`INPLACE_BUILD`, and a
+    commented-out block referencing cutlass and 3rdparty paths. This also drops
+    a `from distutils.core import setup` fallback that would fail outright on
+    Python 3.12+, where `distutils` was removed.
+  - `pysim_perso/.asf.yaml`: Apache infrastructure config describing TVM ("Open
+    deep learning compiler stack"), listing TVM collaborators and TVM CI status
+    checks. Inert here — ASF tooling only reads it at a repository root.
+  - `pysim_perso/.pre-commit-config.yaml`: hooks invoking a `docker/lint.sh`
+    that does not exist, plus cpplint and clang-format for a pure-Python
+    project, pinned to Python 3.6.
+  - `mypy.ini`: three `[mypy-python.tvm.*]` sections for modules not present.
+  - `pysim_perso/error.py`: commented-out `@register_error` FFI decorators and
+    a Sphinx `:ref:` to an `error-handling-guide` document that does not exist.
+
+  No public API, runtime behaviour or packaging metadata changed.
+
 ## [0.0.4] - 2026-09-03
 
 First release published to PyPI, under the new name.
