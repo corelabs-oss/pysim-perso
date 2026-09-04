@@ -23,6 +23,15 @@ version is `0`, the minor version may carry breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `benchmarks/generation.py`, a benchmark harness. It reports throughput
+  (best-of-N), profiles a run, A/B-compares against any git ref, and verifies
+  that output is byte-identical to a ref by substituting a deterministic
+  generator. `--compare` and `--verify` use a throwaway git worktree, so they
+  work against refs predating the harness. Documented under Benchmarking in
+  the README.
+
 ### Performance
 
 - Generation is **1.63x faster** — 18,900 to 30,900 cards/s on a 50,000-card
@@ -51,13 +60,6 @@ version is `0`, the minor version may carry breaking changes.
 - `generate_initial_data` validates K4 and OP before building the frame rather
   than after, so a bad key fails immediately instead of after a full run.
 
-### Removed
-
-- `DataGenerationScript.crypto_utils`, an attribute that was assigned and never
-  read. `CryptoUtils` remains importable from `pysim_perso`.
-
-### Changed
-
 - Reorganised `executor/script.py` so it reads in pipeline order — configure,
   validate, generate, write — under section headers matching those stages, and
   documented that lifecycle in the module and class docstrings. Collapsed the
@@ -68,6 +70,9 @@ version is `0`, the minor version may carry breaking changes.
   keeps its name, signature and semantics.
 
 ### Removed
+
+- `DataGenerationScript.crypto_utils`, an attribute that was assigned and never
+  read. `CryptoUtils` remains importable from `pysim_perso`.
 
 - Dead scaffolding inherited from the Apache TVM project this repository was
   started from, none of it reachable from the build:

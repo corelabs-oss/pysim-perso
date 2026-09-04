@@ -279,9 +279,31 @@ pytest --maxfail=1 --disable-warnings -v          # full suite
 pytest tests/python/algorithm/test_encrypt.py -v  # one module
 pytest --cov=pysim_perso --cov-report=term-missing
 
-black pysim_perso/ tests/python/ verify.py setup.py
+black pysim_perso/ tests/python/ benchmarks/ verify.py setup.py
 mypy pysim_perso/
 ```
+
+### Benchmarking
+
+`benchmarks/generation.py` measures generation throughput and, just as
+importantly, proves a change did not alter output:
+
+```bash
+python benchmarks/generation.py                 # throughput, best of 3
+python benchmarks/generation.py -n 200000 -r 5  # bigger batch, more repeats
+python benchmarks/generation.py --profile       # where the time goes
+python benchmarks/generation.py --compare main  # A/B against a git ref
+python benchmarks/generation.py --verify main   # byte-identical output?
+```
+
+`--compare` and `--verify` check the ref out into a throwaway git worktree and
+re-run the benchmark against that copy of the package, so they work against
+refs that predate the benchmark itself.
+
+Always pair a speedup with `--verify`. Generation draws from the OS CSPRNG, so
+two runs never agree; `--verify` substitutes a counter-backed generator to make
+runs reproducible, then diffs every output frame. A change that is faster and
+silently wrong will pass the test suite.
 
 `pandas-stubs` is required: `mypy.ini` sets `ignore_missing_imports = False`,
 so unstubbed `pandas` is an error rather than a warning.
