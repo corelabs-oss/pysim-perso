@@ -24,7 +24,9 @@ class DataTransform:
 
     @staticmethod
     def b2h(b: bytearray) -> str:
-        return "".join([f"{x:02x}" for x in b])
+        # bytes.hex() is implemented in C; the equivalent "".join(f"{x:02x}")
+        # loop was the third-hottest call in a generation run.
+        return bytes(b).hex()
 
     @staticmethod
     def h2i(s: str) -> List[int]:

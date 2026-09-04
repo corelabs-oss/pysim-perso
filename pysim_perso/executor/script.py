@@ -33,13 +33,13 @@ from typing import Callable, NamedTuple
 
 import pandas as pd
 
-from ..algorithm import CryptoUtils, DependentDataGenerator
+from ..algorithm import DependentDataGenerator, TransportKeyCipher
 from ..error import ConfigValidationError
 from ..issuance import IssuanceLedger
 from ..processor import DataProcessing, DataFrameProcessor
 from ..globals import DataFrames, Parameters
 from ..generator import DataGenerator
-from ..utils import copy_function, list_2_dict, DEFAULT_HEADER
+from ..utils import list_2_dict, DEFAULT_HEADER
 from ..writer import OutputWriter
 
 # An IMSI is MCC (always 3 digits) + MNC (2 or 3) + MSIN. The first 5 digits
@@ -112,7 +112,6 @@ class DataGenerationScript:
 
         # Collaborators. All are stateless; they are attributes so that a
         # caller can substitute an alternative implementation.
-        self.crypto_utils = CryptoUtils()
         self.data_generator = (
             data_generator if data_generator is not None else DataGenerator()
         )
@@ -121,6 +120,8 @@ class DataGenerationScript:
         self.dep_data_generator = DependentDataGenerator()
 
         self._ledger = ledger
+        # Built on first use and reused for the batch; see generate_eki.
+        self._transport_cipher: TransportKeyCipher | None = None
 
     # ------------------------------------------------------------------ #
     # Stage 1 — configuration
@@ -199,8 +200,15 @@ class DataGenerationScript:
     # ------------------------------------------------------------------ #
 
     def generate_eki(self, ki: str) -> str:
-        """Ki encrypted under the batch transport key K4."""
-        return self.dep_data_generator.calculate_eki(self.params.K4, ki)
+        """Ki encrypted under the batch transport key K4.
+
+        K4 is constant for a batch, so the cipher is built once and reused
+        rather than reconstructed per card. It is rebuilt if K4 changes.
+        """
+        cipher = self._transport_cipher
+        if cipher is None or cipher.key_hex != self.params.K4:
+            cipher = self._transport_cipher = TransportKeyCipher(self.params.K4)
+        return cipher.encrypt_ki(ki)
 
     def generate_opc(self, ki: str) -> str:
         """OPc derived from this card's Ki and the batch OP."""
@@ -232,6 +240,20 @@ class DataGenerationScript:
     # Stage 3b — frame assembly
     # ------------------------------------------------------------------ #
 
+    def _fill_code_column(
+        self, df: pd.DataFrame, column: str, generate: Callable[[], str]
+    ) -> None:
+        """Fill a PIN/PUK/ADM column.
+
+        The fixed-or-random choice is per batch, not per card, so it is
+        resolved once here: a fixed value is broadcast, and only the random
+        case draws per row.
+        """
+        if getattr(self.params, f"{column}_RAND"):
+            df[column] = getattr(self.params, column)
+        else:
+            df[column] = [generate() for _ in range(len(df))]
+
     def _apply_function(self, df: pd.DataFrame, dest: str, src: str, function) -> None:
         """Fill *dest* from *src* through *function*, if *dest* was requested."""
         if dest in df.columns:
@@ -240,29 +262,34 @@ class DataGenerationScript:
     def apply_functions(self, df: pd.DataFrame) -> pd.DataFrame:
         """Populate every per-card column of an initialised frame."""
         # Identifiers were sequenced upstream; normalise them to str.
-        df["ICCID"] = df["ICCID"].apply(lambda x: copy_function(x))
-        df["IMSI"] = df["IMSI"].apply(lambda x: copy_function(x))
+        df["ICCID"] = df["ICCID"].astype(str)
+        df["IMSI"] = df["IMSI"].astype(str)
 
         # Cardholder and administrative codes: fixed per batch or per card.
-        df["PIN1"] = df["PIN1"].apply(lambda x: self.generate_pin("PIN1"))
-        df["PIN2"] = df["PIN2"].apply(lambda x: self.generate_pin("PIN2"))
-        df["PUK1"] = df["PUK1"].apply(lambda x: self.generate_puk("PUK1"))
-        df["PUK2"] = df["PUK2"].apply(lambda x: self.generate_puk("PUK2"))
-        df["ADM1"] = df["ADM1"].apply(lambda x: self.generate_adm("ADM1"))
-        df["ADM6"] = df["ADM6"].apply(lambda x: self.generate_adm("ADM6"))
+        four_digit = self.data_generator.generate_4_digit
+        eight_digit = self.data_generator.generate_8_digit
+        self._fill_code_column(df, "PIN1", four_digit)
+        self._fill_code_column(df, "PIN2", four_digit)
+        self._fill_code_column(df, "PUK1", eight_digit)
+        self._fill_code_column(df, "PUK2", eight_digit)
+        self._fill_code_column(df, "ADM1", eight_digit)
+        self._fill_code_column(df, "ADM6", eight_digit)
 
         # Subscriber key, then everything derived from it or from the IMSI.
-        df["KI"] = df["KI"].apply(lambda x: self.data_generator.generate_ki())
+        rows = len(df)
+        generate_ki = self.data_generator.generate_ki
+        df["KI"] = [generate_ki() for _ in range(rows)]
         df["ACC"] = df["IMSI"].apply(
             lambda imsi: self.dep_data_generator.calculate_acc(imsi=str(imsi))
         )
         self._apply_function(df, "EKI", "KI", self.generate_eki)
         self._apply_function(df, "OPC", "KI", self.generate_opc)
 
-        # OTA keysets are independent of Ki; the KI column is only a length source.
+        # OTA keysets are independent of every other column.
+        generate_otas = self.data_generator.generate_otas
         for col in OTA_KEYSET_COLUMNS:
             if col in df.columns:
-                df[col] = df["KI"].apply(lambda x: self.data_generator.generate_otas())
+                df[col] = [generate_otas() for _ in range(rows)]
 
         return df
 
@@ -299,7 +326,9 @@ class DataGenerationScript:
         """Generate the base frame and return it with the batch keys."""
         try:
             if is_demo:
-                demo_data = self.generate_demo_data()
+                # Checked before generating: for a large batch this is the
+                # difference between failing immediately and failing after
+                # building the whole frame.
                 k4 = self.params.K4
                 op = self.params.OP
                 if not k4 or not isinstance(k4, str):
@@ -310,7 +339,7 @@ class DataGenerationScript:
                     raise ValueError(
                         "Invalid value for OP: must be a non-empty string."
                     )
-                return demo_data, {"k4": k4, "op": op}
+                return self.generate_demo_data(), {"k4": k4, "op": op}
             else:
                 raise NotImplementedError(
                     "Non-demo data generation is not yet implemented."
