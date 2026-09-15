@@ -1,6 +1,10 @@
 import secrets
 from typing import Literal
 
+# secrets.SystemRandom() was previously constructed on every PIN/PUK draw.
+# It is a thin, stateless wrapper over os.urandom, so one instance is enough.
+_SYSTEM_RANDOM = secrets.SystemRandom()
+
 
 class DataGenerator:
     @staticmethod
@@ -62,7 +66,7 @@ class DataGenerator:
         Returns:
             str: A string containing an 8-digit number (range: 10000000–99999999).
         """
-        return str(secrets.SystemRandom().randint(10000000, 99999999))
+        return str(_SYSTEM_RANDOM.randint(10000000, 99999999))
 
     @staticmethod
     def generate_4_digit() -> str:
@@ -72,7 +76,7 @@ class DataGenerator:
         Returns:
             str: A string containing a 4-digit number (range: 1000–9999).
         """
-        return str(secrets.SystemRandom().randint(1000, 9999))
+        return str(_SYSTEM_RANDOM.randint(1000, 9999))
 
 
 __all__ = ["DataGenerator"]

@@ -59,7 +59,7 @@ jobs:
         run: python -m pip install --upgrade pip "black==${BLACK_VERSION}"
 
       - name: Check formatting
-        run: black --check --diff pysim_perso/ tests/python/ verify.py setup.py
+        run: black --check --diff pysim_perso/ tests/python/ benchmarks/ verify.py setup.py
 
   # ------------------------------------------------------------------ #
   # Static typing
